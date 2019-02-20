@@ -1,0 +1,59 @@
+---
+title: "EDA"
+author: "Julie Kim"
+date: "2/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+#Read Data
+df = read.csv("ADHD_EEG_Dataset.csv")
+dim(df)
+```
+
+```{r}
+#Separate Data into ADHD + and - diagnoses
+test.df = df[df$ADHD == 1,]
+control.df = df[df$ADHD != 1,]
+```
+
+```{r}
+#Examination of the Attention Task - EEG Activity Data
+test.at.activity = test.df[,72:103]
+control.at.activity = control.df[,72:103]
+
+#Redefine ADHD as factor
+df$ADHD = as.factor(df$ADHD)
+```
+
+```{r, warning = FALSE, message = FALSE}
+#Produce Boxplots of Attention Task - EEG Data
+#For i in the columns that are Attention Task Activity Data
+for (i in 72:103) {
+  #Keep track of how many test and control NA's we're removing
+  na.test = sum(is.na(test.df[,i]))
+  na.control = sum(is.na(control.df[,i]))
+  
+  var.plot = ggplot(temp.df, aes(x = ADHD, y = df[,i]), 
+                    environment = environment()) + geom_boxplot() +
+    labs(x = "ADHD (1 = yes, 0 = no)", y = colnames(temp.df)[i],
+         title = paste(colnames(temp.df)[i], "vs. ADHD"), 
+         subtitle = paste(na.test, "NA test subjects and", na.control, "NA control subjects removed"))
+  ggsave(filename = paste("Col ", i, ".png", sep = ""), plot = var.plot)
+}
+```
+
+Notes:
++ Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
++ Linear model is linear, all variables interact
+
+
