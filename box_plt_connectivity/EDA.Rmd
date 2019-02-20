@@ -1,0 +1,56 @@
+---
+title: "EDA"
+author: "Wanhe Zhao"
+date: "2/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+df = read.csv("ADHD_EEG_Dataset.csv")
+dim(df)
+```
+
+
+```{r}
+#VARIABLES: EEG CONNECTIVITY baseline
+con_b <- df[,104:163]
+length(colnames(con_b))
+```
+
+```{r}
+library(ggplot2)
+library("gridExtra")
+
+p <- list()
+i = 1
+for (col in colnames(con_b)){
+  #number of datasets
+  #title variable
+  
+  p1<-ggplot(data = con_b, aes_string(x = factor(df$ADHD), y = col)) + geom_boxplot() + 
+    labs(title=col, x = "ADHD") + ylim(0,1)
+  p[[i]]=p1
+  i = i + 1
+  #ggsave(filename = col,plot = plot)
+}
+
+
+#ggsave(filename, ggplot)
+```
+
+```{r}
+library(grid)
+for (i in seq(from=1,to=60,by=4)){
+  
+  plot <- grid.arrange(p[[i]],p[[i+1]],p[[i+2]], p[[i+3]], nrow=2, ncol=2)
+  ggsave(filename = paste0("box_plt", i, ".png"), plot)
+  
+}
+#BS_F4F8_ALPHA, BS_F4F8_THETA have shown significant difference. 
+```
+
+
+
+
+
+
