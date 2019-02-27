@@ -1,0 +1,234 @@
+```{r, message=F, warning=F}
+# Import library
+library(tidyverse)
+```
+
+```{r,message=F, warning=F}
+# Read Data
+df = read.csv("ADHD_EEG_Dataset.csv")
+df <- mutate(df, 
+             ADHD = as.factor(ADHD)#,
+             #Sex = as.factor(Sex),
+             #Race = as.factor(Race),
+             #Ethnicity = as.factor(Ethnicity),
+             #MaternalEducation = as.factor(MaternalEducation),
+             #PaternalEducation = as.factor(PaternalEducation),
+             #MomEthnicity = as.factor(MomEthnicity),
+             #DadEthnicity = as.factor(DadEthnicity),
+             #MomRace = as.factor(MomRace),
+             #DadRace = as.factor(DadRace)
+             )
+```
+
+```{r, message=F, warning=F}
+summary(df)
+apply(df, 2, sd)
+```
+
+```{r, message=F, warning=F}
+# Univariate Analysis EDA for Demographic Variables
+
+# Confusion matrix for qualitative variable
+# ADHD CONTROLED 2 by 2 table
+
+par(mfrow=c(2,10))
+
+# ADHD histogram
+ggplot(df, aes(x = ADHD))+
+  geom_histogram()
+# Yea of course, it is a 41 Controled v.s. 41 ADHD dataset.
+
+ggplot(df, aes(x = AT_5months))+
+  geom_histogram()
+# 5 rows are dropped due to missing variable
+
+# Days in age at 5 month histogram
+ggplot(df, aes(x = Age_5months))+
+  geom_histogram()
+# Days in age at 5 month visit?? What does that mean?
+
+ggplot(df, aes(x = MaternalEducation))+
+  geom_histogram()
+
+ggplot(df, aes(x = PaternalEducation))+
+  geom_histogram()
+
+ggplot(df, aes(x = Sex))+
+  geom_histogram()
+
+ggplot(df, aes(x = Race))+
+  geom_histogram()
+
+ggplot(df, aes(x = Ethnicity))+
+  geom_histogram()
+
+ggplot(df, aes(x = Birthweight))+
+  geom_histogram()
+
+ggplot(df, aes(x = MomEthnicity))+
+  geom_histogram()
+
+ggplot(df, aes(x = DadEthnicity))+
+  geom_histogram()
+
+ggplot(df, aes(x = DadRace))+
+  geom_histogram()
+
+ggplot(df, aes(x = MomRace))+
+  geom_histogram()
+```
+
+```{r, message=F, warning=F}
+# IBQ histogram
+ggplot(df, aes(x = IBQ_actlevel_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_distress_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_fear_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_orient_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_smiling_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_highplsre_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_lowplsre_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_soothe_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_fallreac_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_fallreac_reverse_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_cuddli_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_percptsens_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_sadness_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_approach_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_vocreact_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_Surgency_Extraversion_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_Negative_Affectivity_5))+
+  geom_histogram(binwidth = 0.15)
+
+ggplot(df, aes(x = IBQ_Orienting_Regulation_5))+
+  geom_histogram(binwidth = 0.15)
+```
+
+```{r, message=F, warning=F}
+# boxplot control v. ADHD (demographics)
+
+ggplot(df, aes(x = ADHD, y = AT_5months)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Age_5months)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Sex)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Race)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Ethnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MaternalEducation)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = PaternalEducation)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Birthweight)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MomEthnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = DadEthnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MomRace)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = DadRace)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+# Controled vs. ADHD - IBQ measurements
+ggplot(df, aes(x = ADHD, y = IBQ_actlevel_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_distress_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fear_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_orient_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_smiling_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_highplsre_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_lowplsre_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_soothe_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fallreac_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fallreac_reverse_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_cuddli_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_percptsens_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_sadness_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_approach_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_vocreact_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_Surgency_Extraversion_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_Negative_Affectivity_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_Orienting_Regulation_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+```
