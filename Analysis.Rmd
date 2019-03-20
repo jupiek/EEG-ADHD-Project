@@ -1,0 +1,208 @@
+---
+title: "EDA"
+author: "Julie Kim"
+date: "2/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(glmnet)
+library(pander)
+```
+    
+####Read in, Clean up
+
++ Group left/right (3x variable reduction)
++ Subtract baseline from activity (2x variable reduction)
++ Include both alpha/theta
+    
+    Read Data
+    ```{r}
+    #Read Data
+    df = read.csv("ADHD_EEG_Dataset.csv")
+    dim(df)
+    
+    #Subset of data to contain only the ID, response, and EEG readings
+    #i.e. exclude demographic data
+    df = df[,c(1,2,40:163)]
+    
+    #Omit all NA's
+    df = na.omit(df)
+    dim(df)
+    ```
+    
+    Group Data
+    ```{r}
+    #Group the brain regions based on their position (left/right)
+    #Method: Average reading
+    #Odd numbers are left, even numbers right
+    data = df[,1:2]
+    
+    #Baseline Activity - Alpha Band
+    data$BS_LF_ALPHA = NA
+    data$BS_RF_ALPHA = NA
+    data$BS_LC_ALPHA = df$BS_C3_ALPHA
+    data$BS_RC_ALPHA = df$BS_C4_ALPHA
+    data$BS_LT_ALPHA = df$BS_T7_ALPHA
+    data$BS_RT_ALPHA = df$BS_T8_ALPHA
+    data$BS_LP_ALPHA = NA
+    data$BS_RP_ALPHA = NA
+    data$BS_LO_ALPHA = df$BS_O1_ALPHA
+    data$BS_RO_ALPHA = df$BS_O2_ALPHA
+    
+    #Baseline Activity - Theta Band
+    data$BS_LF_THETA = NA
+    data$BS_RF_THETA = NA
+    data$BS_LC_THETA = df$BS_C3_THETA
+    data$BS_RC_THETA = df$BS_C4_THETA
+    data$BS_LT_THETA = df$BS_T7_THETA
+    data$BS_RT_THETA = df$BS_T8_THETA
+    data$BS_LP_THETA = NA
+    data$BS_RP_THETA = NA
+    data$BS_LO_THETA = df$BS_O1_THETA
+    data$BS_RO_THETA = df$BS_O2_THETA
+    
+    #Attention Task Activity - Alpha Band
+    data$AT_LF_ALPHA = NA
+    data$AT_RF_ALPHA = NA
+    data$AT_LC_ALPHA = df$AT_C3_ALPHA
+    data$AT_RC_ALPHA = df$AT_C4_ALPHA
+    data$AT_LT_ALPHA = df$AT_T7_ALPHA
+    data$AT_RT_ALPHA = df$AT_T8_ALPHA
+    data$AT_LP_ALPHA = NA
+    data$AT_RP_ALPHA = NA
+    data$AT_LO_ALPHA = df$AT_O1_ALPHA
+    data$AT_RO_ALPHA = df$AT_O2_ALPHA
+    
+    #Attention Task Activity - Theta Band
+    data$AT_LF_THETA = NA
+    data$AT_RF_THETA = NA
+    data$AT_LC_THETA = df$AT_C3_THETA
+    data$AT_RC_THETA = df$AT_C4_THETA
+    data$AT_LT_THETA = df$AT_T7_THETA
+    data$AT_RT_THETA = df$AT_T8_THETA
+    data$AT_LP_THETA = NA
+    data$AT_RP_THETA = NA
+    data$AT_LO_THETA = df$AT_O1_THETA
+    data$AT_RO_THETA = df$AT_O2_THETA
+    
+    for (i in 1:nrow(df)) {
+      #Baseline Activity - Alpha Band
+      data$BS_LF_ALPHA[i] = mean(df$BS_F1_ALPHA[i], df$BS_F3_ALPHA[i], df$BS_F7_ALPHA[i])
+      data$BS_RF_ALPHA[i] = mean(df$BS_F2_ALPHA[i], df$BS_F4_ALPHA[i], df$BS_F8_ALPHA[i])
+      data$BS_LP_ALPHA[i] = mean(df$BS_P7_ALPHA[i], df$BS_P3_ALPHA[i])
+      data$BS_RP_ALPHA[i] = mean(df$BS_P8_ALPHA[i], df$BS_P4_ALPHA[i])
+      #Baseline Activity - Theta Band
+      data$BS_LF_THETA[i] = mean(df$BS_F1_THETA[i], df$BS_F3_THETA[i], df$BS_F7_THETA[i])
+      data$BS_RF_THETA[i] = mean(df$BS_F2_THETA[i], df$BS_F4_THETA[i], df$BS_F8_THETA[i])
+      data$BS_LP_THETA[i] = mean(df$BS_P7_THETA[i], df$BS_P3_THETA[i])
+      data$BS_RP_THETA[i] = mean(df$BS_P8_THETA[i], df$BS_P4_THETA[i])
+      
+      #Attention Task Activity - Alpha Band
+      data$AT_LF_ALPHA[i] = mean(df$AT_F1_ALPHA[i], df$AT_F3_ALPHA[i], df$AT_F7_ALPHA[i])
+      data$AT_RF_ALPHA[i] = mean(df$AT_F2_ALPHA[i], df$AT_F4_ALPHA[i], df$AT_F8_ALPHA[i])
+      data$AT_LP_ALPHA[i] = mean(df$AT_P7_ALPHA[i], df$AT_P3_ALPHA[i])
+      data$AT_RP_ALPHA[i] = mean(df$AT_P8_ALPHA[i], df$AT_P4_ALPHA[i])
+      #Attention Task Activity - Theta Band
+      data$AT_LF_THETA[i] = mean(df$AT_F1_THETA[i], df$AT_F3_THETA[i], df$AT_F7_THETA[i])
+      data$AT_RF_THETA[i] = mean(df$AT_F2_THETA[i], df$AT_F4_THETA[i], df$AT_F8_THETA[i])
+      data$AT_LP_THETA[i] = mean(df$AT_P7_THETA[i], df$AT_P3_THETA[i])
+      data$AT_RP_THETA[i] = mean(df$AT_P8_THETA[i], df$AT_P4_THETA[i])
+    }
+    
+    #Baseline Connectivity - Alpha Band
+    data$BS_LFF_ALPHA = NA
+    data$BS_RFF_ALPHA = NA
+    data$BS_LFC_ALPHA = df$BS_F3C3_ALPHA
+    data$BS_RFC_ALPHA = df$BS_F4C4_ALPHA
+    data$BS_LFP_ALPHA = NA
+    data$BS_RFP_ALPHA = NA
+    data$BS_LFT_ALPHA = df$BS_F3T7_ALPHA            
+    data$BS_RFT_ALPHA = df$BS_F4T8_ALPHA
+    data$BS_LFO_ALPHA = df$BS_F3O1_ALPHA
+    data$BS_RFO_ALPHA = df$BS_F4O2_ALPHA
+    
+    #Baseline Connectivity - Theta Band
+    data$BS_LFF_THETA = NA
+    data$BS_RFF_THETA = NA
+    data$BS_LFC_THETA = df$BS_F3C3_THETA
+    data$BS_RFC_THETA = df$BS_F4C4_THETA
+    data$BS_LFP_THETA = NA
+    data$BS_RFP_THETA = NA
+    data$BS_LFT_THETA = df$BS_F3T7_THETA            
+    data$BS_RFT_THETA = df$BS_F4T8_THETA
+    data$BS_LFO_THETA = df$BS_F3O1_THETA
+    data$BS_RFO_THETA = df$BS_F4O2_THETA
+    
+    #Attention Task Connectivity - Alpha Band
+    data$AT_LFF_ALPHA = NA
+    data$AT_RFF_ALPHA = NA
+    data$AT_LFC_ALPHA = df$AT_F3C3_ALPHA
+    data$AT_RFC_ALPHA = df$AT_F4C4_ALPHA
+    data$AT_LFP_ALPHA = NA
+    data$AT_RFP_ALPHA = NA
+    data$AT_LFT_ALPHA = df$AT_F3T7_ALPHA            
+    data$AT_RFT_ALPHA = df$AT_F4T8_ALPHA
+    data$AT_LFO_ALPHA = df$AT_F3O1_ALPHA
+    data$AT_RFO_ALPHA = df$AT_F4O2_ALPHA
+    
+    #Attention Task Connectivity - Theta Band
+    data$AT_LFF_THETA = NA
+    data$AT_RFF_THETA = NA
+    data$AT_LFC_THETA = df$AT_F3C3_THETA
+    data$AT_RFC_THETA = df$AT_F4C4_THETA
+    data$AT_LFP_THETA = NA
+    data$AT_RFP_THETA = NA
+    data$AT_LFT_THETA = df$AT_F3T7_THETA            
+    data$AT_RFT_THETA = df$AT_F4T8_THETA
+    data$AT_LFO_THETA = df$AT_F3O1_THETA
+    data$AT_RFO_THETA = df$AT_F4O2_THETA
+    
+    for (i in 1:nrow(df)) {
+      #Baseline Connectivity - Alpha Band
+      data$BS_LFF_ALPHA[i] = mean(df$BS_F1F3_ALPHA[i], df$BS_F3F7_ALPHA[i])
+      data$BS_RFF_ALPHA[i] = mean(df$BS_F2F4_ALPHA[i], df$BS_F4F8_ALPHA[i])
+      data$BS_LFP_ALPHA[i] = mean(df$BS_F3P3_ALPHA[i], df$BS_F3P7_ALPHA[i])
+      data$BS_RFP_ALPHA[i] = mean(df$BS_F4P8_ALPHA[i], df$BS_F4P4_ALPHA[i])
+      #Baseline Connectivity - Theta Band
+      data$BS_LFF_THETA[i] = mean(df$BS_F1F3_THETA[i], df$BS_F3F7_THETA[i])
+      data$BS_RFF_THETA[i] = mean(df$BS_F2F4_THETA[i], df$BS_F4F8_THETA[i])
+      data$BS_LFP_THETA[i] = mean(df$BS_F3P3_THETA[i], df$BS_F3P7_THETA[i])
+      data$BS_RFP_THETA[i] = mean(df$BS_F4P8_THETA[i], df$BS_F4P4_THETA[i])
+      
+      #Attention Task Connectivity - Alpha Band
+      data$AT_LFF_ALPHA[i] = mean(df$AT_F1F3_ALPHA[i], df$AT_F3F7_ALPHA[i])
+      data$AT_RFF_ALPHA[i] = mean(df$AT_F2F4_ALPHA[i], df$AT_F4F8_ALPHA[i])
+      data$AT_LFP_ALPHA[i] = mean(df$AT_F3P3_ALPHA[i], df$AT_F3P7_ALPHA[i])
+      data$AT_RFP_ALPHA[i] = mean(df$AT_F4P8_ALPHA[i], df$AT_F4P4_ALPHA[i])
+      #Attention Task Connectivity - Theta Band
+      data$AT_LFF_THETA[i] = mean(df$AT_F1F3_THETA[i], df$AT_F3F7_THETA[i])
+      data$AT_RFF_THETA[i] = mean(df$AT_F2F4_THETA[i], df$AT_F4F8_THETA[i])
+      data$AT_LFP_THETA[i] = mean(df$AT_F3P3_THETA[i], df$AT_F3P7_THETA[i])
+      data$AT_RFP_THETA[i] = mean(df$AT_F4P8_THETA[i], df$AT_F4P4_THETA[i])
+    }
+    
+    data$BS_time = df$BS_time
+    data$BS_dft = df$BS_dft
+    data$AT_time = df$AT_time
+    data$AT_dft = df$AT_dft
+    ```
+    
+    Subtract Baseline from Activity
+    ```{r}
+    #Subtract Baseline data from Activity Data
+    ###SOPHIA's CODE HERE
+    ```
+    
+    Scale Data
+    ```{r}
+    #Scale data to be centered at 0, with standard deviation 1
+    ###SOPHIA'S CODE HERE
+    ```
+    
