@@ -195,42 +195,69 @@ library(pander)
     ```
     
     Subtract Baseline from Activity
-    + The change of the activity/connectivity from baseline are all saved to a new data frame calld "newdf"
-    + For analysis to predict ADHD from the change of the activity/connectivity from baseline, please refer to "newdf" as the dataset
+    + The change of the activity/connectivity from baseline are all saved to a new data frame calld "data.change"
     ```{r}
-    #Remove single rows that lack a baseline or an activity level
-    #Removed ID: 12,15,18c,19c,31c,32c,38,39,40c,
-    #Enforce consecutive reference of rows
-    rownames(data)=1:nrow(data)
-    data = data[-c(23,28,33,34,57,58,67,68,69),]
+    # Subtract baseline activity/ connectivity signal from activity
+    data.change <- mutate(data,
+                    ID = data[,1],
+                    ADHD = ADHD,
+                    # EEG Activity Subtraction
+                    LF_ALPHA = AT_LF_ALPHA - BS_LF_ALPHA,
+                    RF_ALPHA = AT_RF_ALPHA - BS_RF_ALPHA,
+                    LC_ALPHA = AT_LC_ALPHA - BS_LC_ALPHA,
+                    RC_ALPHA = AT_RC_ALPHA - BS_RC_ALPHA,
+                    LT_ALPHA = AT_LT_ALPHA - BS_LT_ALPHA,
+                    RT_ALPHA = AT_RT_ALPHA - BS_RT_ALPHA,
+                    LP_ALPHA = AT_LP_ALPHA - BS_LP_ALPHA,
+                    RP_ALPHA = AT_RP_ALPHA - BS_RP_ALPHA,
+                    LO_ALPHA = AT_LO_ALPHA - BS_LO_ALPHA,
+                    RO_ALPHA = AT_RO_ALPHA - BS_RO_ALPHA,
+                    LF_THETA = AT_LF_THETA - BS_LF_THETA,
+                    RF_THETA = AT_RF_THETA - BS_RF_THETA,
+                    LC_THETA = AT_LC_THETA - BS_LC_THETA,
+                    RC_THETA = AT_RC_THETA - BS_RC_THETA,
+                    LT_THETA = AT_LT_THETA - BS_LT_THETA,
+                    RT_THETA = AT_RT_THETA - BS_RT_THETA,
+                    LP_THETA = AT_LP_THETA - BS_LP_THETA,
+                    RP_THETA = AT_RP_THETA - BS_RP_THETA,
+                    LO_THETA = AT_LO_THETA - BS_LO_THETA,
+                    RO_THETA = AT_RO_THETA - BS_RO_THETA,
+                    # EEG Connectivity Subtraction
+                    LFF_ALPHA = AT_LFF_ALPHA - BS_LFF_ALPHA,
+                    RFF_ALPHA = AT_RFF_ALPHA - BS_RFF_ALPHA,
+                    LFC_ALPHA = AT_LFC_ALPHA - BS_LFC_ALPHA,
+                    RFC_ALPHA = AT_RFC_ALPHA - BS_RFC_ALPHA,
+                    LFP_ALPHA = AT_LFP_ALPHA - BS_LFP_ALPHA,
+                    RFP_ALPHA = AT_RFP_ALPHA - BS_RFP_ALPHA,
+                    LFT_ALPHA = AT_LFT_ALPHA - BS_LFT_ALPHA,
+                    RFT_ALPHA = AT_RFT_ALPHA - BS_RFT_ALPHA,
+                    LFO_ALPHA = AT_LFO_ALPHA - BS_LFO_ALPHA,
+                    RFO_ALPHA = AT_RFO_ALPHA - BS_RFO_ALPHA,
+                    LFF_THETA = AT_LFF_THETA - BS_LFF_THETA,
+                    RFF_THETA = AT_RFF_THETA - BS_RFF_THETA,
+                    LFC_THETA = AT_LFC_THETA - BS_LFC_THETA,
+                    RFC_THETA = AT_RFC_THETA - BS_RFC_THETA,
+                    LFP_THETA = AT_LFP_THETA - BS_LFP_THETA,
+                    RFP_THETA = AT_RFP_THETA - BS_RFP_THETA,
+                    LFT_THETA = AT_LFT_THETA - BS_LFT_THETA,
+                    RFT_THETA = AT_RFT_THETA - BS_RFT_THETA,
+                    LFO_THETA = AT_LFO_THETA - BS_LFO_THETA,
+                    RFO_THETA = AT_RFO_THETA - BS_RFO_THETA,
+                    time = AT_time - BS_time,
+                    dft = AT_dft - BS_dft
+    )
+    
+    data.change = data.change[,-c(1:86)]
+    data.change
+    dim(data.change)
     dim(data)
-
-    #Subtract Baseline data from Activity Data 
-    #Setup for subtraction
-    n = nrow(data) #sample size (baseline + activity) is 62
-    pairs = seq(1,n-1,by=2) #take out odd rows
-    newdf = data.frame() #setup a dataframe to store the subtracted number (i.e. change from baseline)
-    temp = data[,-c(1,2)] #setup a temperary dataset that drops the ID and the ADHD column
-    rowID = as.character(data[pairs,1]) #save the ID to rowID
-    #Subtract the EEG measures by every 2 rows
-    for(i in pairs){
-      newdf = rbind(newdf, temp[i,]-temp[i+1,])
-    }
-    #Add subject ID and ADHD diagnostic back for future reference
-    newdf = data.frame(ID = rowID, ADHD = rep(1,nrow(newdf)),newdf)
-    #Enforce consecutive reference of rows
-    rownames(newdf)=1:nrow(newdf)
-    newdf
-    dim(newdf)
     ```
     Scale Data
-    + The original dataset that contains the actual connectivity/activity measure of the ADHD v. baseline pairs are normalized, and a modified dataset is made by subtracting the normalized connecivity/activity measure from the normalized baseline. This modified dataset is called *newdf.norm* and it is a substitute for *newdf*.
-    + The modified dataset that contains the change of connectivity/activity measures from baseline are normalized as well and saved as *newdf*. It is a substitue for *newdf.norm*.
-    + Summary: *newdf.norm* is obtained by normalizing the original data first and then subtracting activity from baseline; *newdf* is obtained by subtracting activity from baseline first and then normalizing the change.
     ```{r}
-    #1.1 Scale data to be centered at 0, with standard deviation 1
+    #Scale data to be centered at 0, with standard deviation 1
     #Normalize the original dataset "data"
-    scaled.data = as.data.frame(cbind(ID = data[,1], ADHD = data[,2], scale(data[,-c(1,2)])))
+    scaled.data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
+
     #Check that dataset is normalized
     checkMat = round(colMeans(scaled.data[,-c(1,2)]),10)==0
     ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
@@ -241,39 +268,9 @@ library(pander)
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
 
-    #1.2 
-    #Subtract normalized Baseline data from normalized Activity Data 
-    #Setup for subtraction
-    n = nrow(scaled.data) #sample size (baseline + activity) is 62
-    pairs = seq(1,n-1,by=2) #take out odd rows
-    newdf.norm = data.frame() #setup a dataframe to store the subtracted number (i.e. change from baseline)
-    temp = scaled.data[,-c(1,2)] #setup a temperary dataset that drops the ID and the ADHD column
-    rowID = as.character(scaled.data[pairs,1]) #save the ID to rowID
-    #Subtract the EEG measures by every 2 rows
-    for(i in pairs){
-      newdf.norm = rbind(newdf.norm, temp[i,]-temp[i+1,])
-    }
-    #Add subject ID and ADHD diagnostic back for future reference
-    newdf.norm = data.frame(ID = rowID, ADHD = rep(1,nrow(newdf.norm)),newdf.norm)
-    #Enforce consecutive reference of rows
-    rownames(newdf.norm)=1:nrow(newdf.norm)
-    
-    #2.1 Normalize the change dataset "newdf" (the change of connectivity/activity from baseline)
-    scaled.newdf = as.data.frame(cbind(ID = newdf[,1], ADHD = newdf[,2], scale(newdf[,-c(1,2)])))
-    #Check that dataset is normalized
-    checkMat = round(colMeans(scaled.newdf[,-c(1,2)]),10)==0
-    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
-          print("Data to be centered at 0 success"),
-          print("Data to be centered at 0 fail"))
-    checkMat2 = round(apply(scaled.newdf[,-c(1,2)], 2, sd),10)==1
-    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
-          print("Data to have standard deviation of 1 success"),
-          print("Data to have standard deviation of 1 fail"))
-    
-    newdf.norm
-    newdf
-    dim(newdf.norm)
-    dim(newdf)
+    # Print Data Set of interst and its dimension
+    data.change
+    dim(data.change)
     ```
     
 ####Model fitting: Elastic Net (Lasso and Ridge Regression Combined)
