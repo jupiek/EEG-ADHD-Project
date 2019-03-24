@@ -255,7 +255,6 @@ library(pander)
     Scale Data
     ```{r}
     #Scale data to be centered at 0, with standard deviation 1
-    #Normalize the original dataset "data"
     scaled.data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
 
     #Check that dataset is normalized
