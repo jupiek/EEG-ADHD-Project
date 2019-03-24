@@ -251,9 +251,6 @@ library(pander)
     ```
 
     Scale Data
-    + The original dataset that contains the actual connectivity/activity measure of the ADHD v. baseline pairs are normalized, and a modified dataset is made by subtracting the normalized connecivity/activity measure from the normalized baseline. This modified dataset is called *newdf.norm* and it is a substitute for *newdf*.
-    + The modified dataset that contains the change of connectivity/activity measures from baseline are normalized as well and saved as *newdf*. It is a substitue for *newdf.norm*.
-    + Summary: *newdf.norm* is obtained by normalizing the original data first and then subtracting activity from baseline; *newdf* is obtained by subtracting activity from baseline first and then normalizing the change.
     ```{r}
     #Scale data to be centered at 0, with standard deviation 1
     data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
