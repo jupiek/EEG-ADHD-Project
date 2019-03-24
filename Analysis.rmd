@@ -199,8 +199,6 @@ library(pander)
     ```{r}
     # Subtract baseline activity/ connectivity signal from activity
     data.change <- mutate(data,
-                    ID = data[,1],
-                    ADHD = ADHD,
                     # EEG Activity Subtraction
                     LF_ALPHA = AT_LF_ALPHA - BS_LF_ALPHA,
                     RF_ALPHA = AT_RF_ALPHA - BS_RF_ALPHA,
@@ -222,7 +220,7 @@ library(pander)
                     RP_THETA = AT_RP_THETA - BS_RP_THETA,
                     LO_THETA = AT_LO_THETA - BS_LO_THETA,
                     RO_THETA = AT_RO_THETA - BS_RO_THETA,
-                    # EEG Connectivity Subtraction
+                    #Connectivity
                     LFF_ALPHA = AT_LFF_ALPHA - BS_LFF_ALPHA,
                     RFF_ALPHA = AT_RFF_ALPHA - BS_RFF_ALPHA,
                     LFC_ALPHA = AT_LFC_ALPHA - BS_LFC_ALPHA,
@@ -246,30 +244,33 @@ library(pander)
                     time = AT_time - BS_time,
                     dft = AT_dft - BS_dft
     )
-    
-    data.change = data.change[,-c(1:86)]
-    data.change
-    dim(data.change)
+
+    data = data.change[,-c(3:86)]
+    data
     dim(data)
     ```
+
     Scale Data
+    + The original dataset that contains the actual connectivity/activity measure of the ADHD v. baseline pairs are normalized, and a modified dataset is made by subtracting the normalized connecivity/activity measure from the normalized baseline. This modified dataset is called *newdf.norm* and it is a substitute for *newdf*.
+    + The modified dataset that contains the change of connectivity/activity measures from baseline are normalized as well and saved as *newdf*. It is a substitue for *newdf.norm*.
+    + Summary: *newdf.norm* is obtained by normalizing the original data first and then subtracting activity from baseline; *newdf* is obtained by subtracting activity from baseline first and then normalizing the change.
     ```{r}
     #Scale data to be centered at 0, with standard deviation 1
-    scaled.data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
+    data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
 
     #Check that dataset is normalized
-    checkMat = round(colMeans(scaled.data[,-c(1,2)]),10)==0
+    checkMat = round(colMeans(data[,-c(1,2)]),10)==0
     ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
           print("Data to be centered at 0 success"),
           print("Data to be centered at 0 fail"))
-    checkMat2 = round(apply(scaled.data[,-c(1,2)], 2, sd),10)==1
+    checkMat2 = round(apply(data[,-c(1,2)], 2, sd),10)==1
     ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
 
     # Print Data Set of interst and its dimension
-    data.change
-    dim(data.change)
+    data
+    dim(data)
     ```
     
 ####Model fitting: Elastic Net (Lasso and Ridge Regression Combined)
