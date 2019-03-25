@@ -264,8 +264,8 @@ library(pander)
     ```{r, message=F, warning=F}
     #Scale data to be centered at 0, with standard deviation 1
     #Normalize the original dataset "data"
-    data.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
-    data.norm = mutate(data.norm, ID = data[,1])
+    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
+    data.ATT.norm = mutate(data.norm, ID = data[,1])
     
     #Check that dataset is normalized
     checkMat = round(colMeans(data.norm[,-c(1,2)]),10)==0
@@ -294,11 +294,11 @@ library(pander)
 
     # Print Data Set of interst and its dimension
     data.ATT
-    data.norm
+    data.ATT.norm
     data.change
     data.change.norm
     dim(data.ATT)
-    dim(data.norm)
+    dim(data.ATT.norm)
     dim(data.change)
     dim(data.change.norm)
     ```
