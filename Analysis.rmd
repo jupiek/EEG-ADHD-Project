@@ -195,9 +195,13 @@ library(pander)
     data$AT_dft = df$AT_dft
     ```
     
-    Subtract Baseline from Activity
+        Subtract Baseline from Activity
+    + The dataset with only attention level is saved as "data.ATT"
     + The change of the activity/connectivity from baseline are all saved to a new data frame calld "data.change"
     ```{r}
+    # Enforce consecutive row name reference
+    rownames(data) <- NULL
+
     # Subtract baseline activity/ connectivity signal from activity
     data.change <- mutate(data,
                     # EEG Activity Subtraction
@@ -221,7 +225,7 @@ library(pander)
                     RP_THETA = AT_RP_THETA - BS_RP_THETA,
                     LO_THETA = AT_LO_THETA - BS_LO_THETA,
                     RO_THETA = AT_RO_THETA - BS_RO_THETA,
-                    #Connectivity
+                    # EEG Connectivity subtraction
                     LFF_ALPHA = AT_LFF_ALPHA - BS_LFF_ALPHA,
                     RFF_ALPHA = AT_RFF_ALPHA - BS_RFF_ALPHA,
                     LFC_ALPHA = AT_LFC_ALPHA - BS_LFC_ALPHA,
@@ -246,32 +250,57 @@ library(pander)
                     dft = AT_dft - BS_dft
     )
 
-    data = data.change[,-c(3:86)]
-    data
-    dim(data)
+    data.ATT = data[,c(1,2,23:42,63:82,85,86)]
+    data.ATT
+    dim(data.ATT)
+    data.change = data.change[,-c(3:86)]
+    data.change
+    dim(data.change)
     ```
 
     Scale Data
-    + The original dataset that contains the actual connectivity/activity measure of the ADHD v. baseline pairs are normalized, and a modified dataset is made by subtracting the normalized connecivity/activity measure from the normalized baseline. This modified dataset is called *newdf.norm* and it is a substitute for *newdf*.
-    + The modified dataset that contains the change of connectivity/activity measures from baseline are normalized as well and saved as *newdf*. It is a substitue for *newdf.norm*.
-    + Summary: *newdf.norm* is obtained by normalizing the original data first and then subtracting activity from baseline; *newdf* is obtained by subtracting activity from baseline first and then normalizing the change.
-    ```{r}
+    + Normalized original dataset is saved as "data.norm"
+    + Normalized change score dataset is saved as "data.change.norm"
+    ```{r, message=F, warning=F}
     #Scale data to be centered at 0, with standard deviation 1
-    data = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
-
+    #Normalize the original dataset "data"
+    data.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
+    data.norm = mutate(data.norm, ID = data[,1])
+    
     #Check that dataset is normalized
-    checkMat = round(colMeans(data[,-c(1,2)]),10)==0
+    checkMat = round(colMeans(data.norm[,-c(1,2)]),10)==0
     ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
           print("Data to be centered at 0 success"),
           print("Data to be centered at 0 fail"))
-    checkMat2 = round(apply(data[,-c(1,2)], 2, sd),10)==1
+    checkMat2 = round(apply(data.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    #Scale data to be centered at 0, with standard deviation 1
+    #Normalize the change score dataset "data"
+    data.change.norm = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
+    data.change.norm = mutate(data.change.norm, ID = data.change[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.change.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.change.norm[,-c(1,2)], 2, sd),10)==1
     ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
 
     # Print Data Set of interst and its dimension
-    data
-    dim(data)
+    data.ATT
+    data.norm
+    data.change
+    data.change.norm
+    dim(data.ATT)
+    dim(data.norm)
+    dim(data.change)
+    dim(data.change.norm)
     ```
     
 ####Model fitting: Elastic Net (Lasso and Ridge Regression Combined)
