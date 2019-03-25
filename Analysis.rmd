@@ -650,6 +650,7 @@ library(pander)
     # Residual QQ-plot
     # Residual v.s. fitted values
     # Residual v.s. predictors (if applicable)
+    # Residual v.s. index (histogram or scatter plot of residuals alone to see its distribution)
     ### WANHE'S CODE HERE
     ```
     
