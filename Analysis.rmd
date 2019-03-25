@@ -259,7 +259,7 @@ library(pander)
     ```
 
     Scale Data
-    + Normalized original dataset is saved as "data.norm"
+    + Normalized original dataset is saved as "data.ATT.norm"
     + Normalized change score dataset is saved as "data.change.norm"
     ```{r, message=F, warning=F}
     #Scale data to be centered at 0, with standard deviation 1
