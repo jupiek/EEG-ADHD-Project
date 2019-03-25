@@ -279,13 +279,24 @@ library(pander)
     ```{r}
     #Fit Elastic Net regression and choose significant classifiers/ predictors
     ###WANHE & JAE'S CODE HERE
+    cvfit <- cv.glmnet(y=data$ADHD, x=as.matrix(data[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class")
+    cvfit$lambda.min
+    #the largest λ at which the MSE is within one standard error of the minimal MSE.
+    cvfit$lambda.1se
+  
+    plot(cvfit)
+
     ```
 
     Cross Validation (number of folds should be specified)
     ```{r}
     #Cross Validation - specify the number of folds
     ###WANHE & JAE'S CODE HERE
+   coef(cvfit, s = "lambda.min")
+   
     ```
+
+    
     
 ####Diagnostics
 
