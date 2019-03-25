@@ -640,8 +640,9 @@ library(pander)
 
     Cross Validation Error and Accuracy Rate
     ```{r}
+    # CV Error (Average Prediction Error + MSE)
+    # Classification accuracy rate
     ###WANHE & JAE'S CODE HERE
-    
     ```
     
     QQ Plot and Residual Analysis
