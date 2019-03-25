@@ -617,7 +617,6 @@ library(pander)
     Model fitting
     ```{r}
     #Fit Elastic Net regression and choose significant classifiers/ predictors
-    ###WANHE & JAE'S CODE HERE
     cvfit <- cv.glmnet(y=data$ADHD, x=as.matrix(data[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class")
     cvfit$lambda.min
     #the largest λ at which the MSE is within one standard error of the minimal MSE.
@@ -629,20 +628,32 @@ library(pander)
     Cross Validation (number of folds should be specified)
     ```{r}
     #Cross Validation - specify the number of folds
-    ###WANHE & JAE'S CODE HERE
     coef(cvfit, s = "lambda.min")
+    ```
+    
+    Bootstrapping
+    ```{r}
+    ###JULIE'S CODE HERE
     ```
     
 ####Diagnostics
 
-    Cross Validation Error
+    Cross Validation Error and Accuracy Rate
     ```{r}
     ###WANHE & JAE'S CODE HERE
     
     ```
     
-    Anything else that could be applied - recommended by Cassie and Kevin
+    QQ Plot and Residual Analysis
     ```{r}
-    ###WANHE & JAE'S CODE HERE
+    # Residual QQ-plot
+    # Residual v.s. fitted values
+    # Residual v.s. predictors (if applicable)
+    ### WANHE'S CODE HERE
+    ```
+    
+    PCA
+    ```{r}
+    ###JAE'S CODE HERE
     ```
 >>>>>>> 2658b82c0ea6be07db0b0d14a5e2514fb578d281
