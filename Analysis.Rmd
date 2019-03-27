@@ -196,11 +196,11 @@ library(pander)
     data$AT_dft = df$AT_dft
     ```
     
-        Subtract Baseline from Activity
+    Subtract Baseline from Activity
     + The dataset with only attention level is saved as "data.ATT"
     + The change of the activity/connectivity from baseline are all saved to a new data frame calld "data.change"
     ```{r}
-    # Enforce consecutive row name reference
+        # Enforce consecutive row name reference
     rownames(data) <- NULL
 
     # Subtract baseline activity/ connectivity signal from activity
@@ -250,13 +250,40 @@ library(pander)
                     time = AT_time - BS_time,
                     dft = AT_dft - BS_dft
     )
-
-    data.ATT = data[,c(1,2,23:42,63:82,85,86)]
-    data.ATT
-    dim(data.ATT)
+    
+    # Groupped left/right brain regions
+    data
+    dim(data)
+    
+    # Change scores by subtracting baseline values from attention task values
     data.change = data.change[,-c(3:86)]
     data.change
     dim(data.change)
+    
+    # Just EEG Activity
+    data.ACT = data[,-c(43:84)]
+    data.ACT
+    dim(data.ACT)
+    
+    # Just EEG Connectivity
+    data.CON = data[,c(1:2,43:86)]
+    data.CON
+    dim(data.CON)
+    
+    # Just EEG Connectivity + Activity without baseline
+    data.ATT = data[,c(1,2,23:42,63:82,85,86)]
+    data.ATT
+    dim(data.ATT)
+    
+    # Just data from the alpha band
+    data.alpha = data[,c(1:12,23:32,43:52,63:72)]
+    data.alpha
+    dim(data.alpha)
+    
+    # Just data from the theta band
+    data.theta = data[,-c(3:12,23:32,43:52,63:72,83:86)]
+    data.theta
+    dim(data.theta)
     ```
 
     Scale Data
@@ -264,10 +291,11 @@ library(pander)
     + Normalized change score dataset is saved as "data.change.norm"
     ```{r, message=F, warning=F}
     #Scale data to be centered at 0, with standard deviation 1
-    #Normalize the original dataset "data"
-    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
-    data.ATT.norm = mutate(data.norm, ID = data[,1])
     
+    # Normalize the original dataset "data"
+    data.norm = as.data.frame(cbind(ID = data[,1], ADHD = data[,2], scale(data[,-c(1,2)])))
+    data.norm = mutate(data.norm, ID = data[,1])
+
     #Check that dataset is normalized
     checkMat = round(colMeans(data.norm[,-c(1,2)]),10)==0
     ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
@@ -278,8 +306,7 @@ library(pander)
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
     
-    #Scale data to be centered at 0, with standard deviation 1
-    #Normalize the change score dataset "data"
+    #Normalize the change score dataset "data.change"
     data.change.norm = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
     data.change.norm = mutate(data.change.norm, ID = data.change[,1])
 
@@ -293,15 +320,91 @@ library(pander)
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
 
-    # Print Data Set of interst and its dimension
-    data.ATT
-    data.ATT.norm
-    data.change
+    # Normalize just EEG Activity
+    data.ACT.norm = as.data.frame(cbind(ID = data.ACT[,1], ADHD = data.ACT[,2], scale(data.ACT[,-c(1,2)])))
+    data.ACT.norm = mutate(data.ACT.norm, ID = data.ACT[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ACT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ACT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just EEG Connectivity
+    data.CON.norm = as.data.frame(cbind(ID = data.CON[,1], ADHD = data.CON[,2], scale(data.CON[,-c(1,2)])))
+    data.CON.norm = mutate(data.CON.norm, ID = data.CON[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.CON.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.CON.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Normalize just EEG Connectivity + Activity without baseline
+    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
+    data.ATT.norm = mutate(data.norm, ID = data[,1])
+    
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ATT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ATT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the alpha band
+    data.alpha.norm = as.data.frame(cbind(ID = data.alpha[,1], ADHD = data.alpha[,2], scale(data.alpha[,-c(1,2)])))
+    data.alpha.norm = mutate(data.alpha.norm, ID = data.alpha[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.alpha.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.alpha.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the theta band
+    data.theta.norm = as.data.frame(cbind(ID = data.theta[,1], ADHD = data.theta[,2], scale(data.theta[,-c(1,2)])))
+    data.theta.norm = mutate(data.theta.norm, ID = data.theta[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.theta.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.theta.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Print Data Set of interest and its dimension
+    data.norm
     data.change.norm
-    dim(data.ATT)
-    dim(data.ATT.norm)
-    dim(data.change)
+    data.ACT.norm
+    data.CON.norm
+    data.ATT.norm
+    data.alpha.norm
+    data.alpha.norm
+    dim(data.norm)
     dim(data.change.norm)
+    dim(data.ACT.norm)
+    dim(data.CON.norm)
+    dim(data.ATT.norm)
+    dim(data.alpha.norm)
+    dim(data.theta.norm)
     ```
 
 
