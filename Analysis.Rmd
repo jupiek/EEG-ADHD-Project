@@ -261,17 +261,17 @@ library(pander)
     dim(data.change)
     
     # Just EEG Activity
-    data.ACT = data[,-c(43:84)]
+    data.ACT = data[,-c(43:86)]
     data.ACT
     dim(data.ACT)
     
     # Just EEG Connectivity
-    data.CON = data[,c(1:2,43:86)]
+    data.CON = data[,c(1:2,43:84)]
     data.CON
     dim(data.CON)
     
     # Just EEG Connectivity + Activity without baseline
-    data.ATT = data[,c(1,2,23:42,63:82,85,86)]
+    data.ATT = data[,c(1,2,23:42,63:82)]
     data.ATT
     dim(data.ATT)
     
