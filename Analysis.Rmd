@@ -266,7 +266,7 @@ library(pander)
     dim(data.ACT)
     
     # Just EEG Connectivity
-    data.CON = data[,c(1:2,43:84)]
+    data.CON = data[,c(1:2,43:82)]
     data.CON
     dim(data.CON)
     
