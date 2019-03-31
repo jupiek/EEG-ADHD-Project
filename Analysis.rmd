@@ -17,11 +17,12 @@ library(glmnet)
 library(pander)
 ```
     
+    
 ####Read in, Clean up
 
-+ Group left/right (3x variable reduction)
-+ Subtract baseline from activity (2x variable reduction)
-+ Include both alpha/theta
+    + Group left/right (3x variable reduction)
+    + Subtract baseline from activity (2x variable reduction)
+    + Include both alpha/theta
     
     Read Data
     ```{r}
@@ -195,11 +196,11 @@ library(pander)
     data$AT_dft = df$AT_dft
     ```
     
-        Subtract Baseline from Activity
+    Subtract Baseline from Activity
     + The dataset with only attention level is saved as "data.ATT"
     + The change of the activity/connectivity from baseline are all saved to a new data frame calld "data.change"
     ```{r}
-    # Enforce consecutive row name reference
+        # Enforce consecutive row name reference
     rownames(data) <- NULL
 
     # Subtract baseline activity/ connectivity signal from activity
@@ -249,13 +250,40 @@ library(pander)
                     time = AT_time - BS_time,
                     dft = AT_dft - BS_dft
     )
-
-    data.ATT = data[,c(1,2,23:42,63:82,85,86)]
-    data.ATT
-    dim(data.ATT)
+    
+    # Groupped left/right brain regions
+    data
+    dim(data)
+    
+    # Change scores by subtracting baseline values from attention task values
     data.change = data.change[,-c(3:86)]
     data.change
     dim(data.change)
+    
+    # Just EEG Activity
+    data.ACT = data[,-c(43:86)]
+    data.ACT
+    dim(data.ACT)
+    
+    # Just EEG Connectivity
+    data.CON = data[,c(1:2,43:82)]
+    data.CON
+    dim(data.CON)
+    
+    # Just EEG Connectivity + Activity without baseline
+    data.ATT = data[,c(1,2,23:42,63:82)]
+    data.ATT
+    dim(data.ATT)
+    
+    # Just data from the alpha band
+    data.alpha = data[,c(1:12,23:32,43:52,63:72)]
+    data.alpha
+    dim(data.alpha)
+    
+    # Just data from the theta band
+    data.theta = data[,-c(3:12,23:32,43:52,63:72,83:86)]
+    data.theta
+    dim(data.theta)
     ```
 
     Scale Data
@@ -263,10 +291,11 @@ library(pander)
     + Normalized change score dataset is saved as "data.change.norm"
     ```{r, message=F, warning=F}
     #Scale data to be centered at 0, with standard deviation 1
-    #Normalize the original dataset "data"
-    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
-    data.ATT.norm = mutate(data.norm, ID = data[,1])
     
+    # Normalize the original dataset "data"
+    data.norm = as.data.frame(cbind(ID = data[,1], ADHD = data[,2], scale(data[,-c(1,2)])))
+    data.norm = mutate(data.norm, ID = data[,1])
+
     #Check that dataset is normalized
     checkMat = round(colMeans(data.norm[,-c(1,2)]),10)==0
     ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
@@ -277,8 +306,7 @@ library(pander)
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
     
-    #Scale data to be centered at 0, with standard deviation 1
-    #Normalize the change score dataset "data"
+    #Normalize the change score dataset "data.change"
     data.change.norm = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
     data.change.norm = mutate(data.change.norm, ID = data.change[,1])
 
@@ -292,64 +320,193 @@ library(pander)
           print("Data to have standard deviation of 1 success"),
           print("Data to have standard deviation of 1 fail"))
 
-    # Print Data Set of interst and its dimension
-    data.ATT
-    data.ATT.norm
-    data.change
-    data.change.norm
-    dim(data.ATT)
-    dim(data.ATT.norm)
-    dim(data.change)
-    dim(data.change.norm)
-    ```
-    
-####Model fitting: Elastic Net (Lasso and Ridge Regression Combined)
+    # Normalize just EEG Activity
+    data.ACT.norm = as.data.frame(cbind(ID = data.ACT[,1], ADHD = data.ACT[,2], scale(data.ACT[,-c(1,2)])))
+    data.ACT.norm = mutate(data.ACT.norm, ID = data.ACT[,1])
 
-    Model fitting
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ACT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ACT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just EEG Connectivity
+    data.CON.norm = as.data.frame(cbind(ID = data.CON[,1], ADHD = data.CON[,2], scale(data.CON[,-c(1,2)])))
+    data.CON.norm = mutate(data.CON.norm, ID = data.CON[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.CON.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.CON.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Normalize just EEG Connectivity + Activity without baseline
+    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
+    data.ATT.norm = mutate(data.norm, ID = data[,1])
+    
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ATT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ATT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the alpha band
+    data.alpha.norm = as.data.frame(cbind(ID = data.alpha[,1], ADHD = data.alpha[,2], scale(data.alpha[,-c(1,2)])))
+    data.alpha.norm = mutate(data.alpha.norm, ID = data.alpha[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.alpha.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.alpha.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the theta band
+    data.theta.norm = as.data.frame(cbind(ID = data.theta[,1], ADHD = data.theta[,2], scale(data.theta[,-c(1,2)])))
+    data.theta.norm = mutate(data.theta.norm, ID = data.theta[,1])
+
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.theta.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.theta.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Print Data Set of interest and its dimension
+    data.norm
+    data.change.norm
+    data.ACT.norm
+    data.CON.norm
+    data.ATT.norm
+    data.alpha.norm
+    data.alpha.norm
+    dim(data.norm)
+    dim(data.change.norm)
+    dim(data.ACT.norm)
+    dim(data.CON.norm)
+    dim(data.ATT.norm)
+    dim(data.alpha.norm)
+    dim(data.theta.norm)
+    ```
+
+
+###Diagnostics
+
+    PCA
+    ```{r}
+    ###JAE'S CODE HERE
+    ```
+
+
+###Modeling
+
+####Elastic Net (Lasso and Ridge Regression Combined)
+
+    Model fitting &  Cross Validation (number of folds should be specified)
     ```{r}
     #Fit Elastic Net regression and choose significant classifiers/ predictors
-    cvfit <- cv.glmnet(y=data$ADHD, x=as.matrix(data[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class")
-    cvfit$lambda.min
-    #the largest λ at which the MSE is within one standard error of the minimal MSE.
-    cvfit$lambda.1se
-  
-    plot(cvfit)
-
-    ```
-
-    Cross Validation (number of folds should be specified)
-    ```{r}
     #Cross Validation - specify the number of folds
-   coef(cvfit, s = "lambda.min")
-   
+    
     ```
     
-####Diagnostics
+    ```{r}
+    #Cross Validation and Test Error - specify the number of folds
+    ###WANHE & JAE'S CODE HERE
 
+    test_error <- function(data){
+      #leave out 10% of test data and get the misclassification rate
+      n <- nrow(data)
+      m <- round(.1*n)
+      mis_rate <- numeric(0)
+      for(i in 1:100){
+        test_indx <- sample(1:n, m, replace=FALSE)
+        test <- data[test_indx,]
+        train <- data[-test_indx,]
+        #cross validation
+        cvfit <- cv.glmnet(y=train$ADHD, x=as.matrix(train[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class", nfolds=5)
+        mis_rate[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
+      
+      }
+      return(mis_rate)
+    }
+    
+    
+    
+    
+    ```
+    
+```{r}
+mis_rate_norm <- test_error(data.norm)
+mis_rate_change_norm <- test_error(data.change.norm)
+mis_rate_act_norm <- test_error(data.ACT.norm)
+mis_rate_con_norm <- test_error(data.CON.norm)
+mis_rate_att_norm <- test_error(data.ATT.norm)
+mis_rate_alpha_norm <- test_error(data.alpha.norm)
+mis_rate_theta_norm <- test_error(data.theta.norm)
+
+mean(mis_rate_norm)
+mean(mis_rate_change_norm)
+mean(mis_rate_act_norm)
+mean(mis_rate_con_norm)
+mean(mis_rate_att_norm)
+mean(mis_rate_alpha_norm)
+mean(mis_rate_theta_norm)
+
+
+```
+    
     Cross Validation Error
     ```{r}
     ###WANHE & JAE'S CODE HERE
-    ```
     
-    Anything else that could be applied - recommended by Cassie and Kevin
-    ```{r}
-    ###WANHE & JAE'S CODE HERE
+    #Change the below function as needed, this takes multiple formulas in the form of a vector, e.g. c("response ~ var1", "response ~ var2 + var3"), and returns a vector of their MSE's, e.g, c(0.3300, 0.5780)
+    #Function to do k-fold cross-validation on LINEAR models, given as a vector (or list) of model formulae. 
+    #Note that this only returns the CV MSE, not the parameter estimates on each fold.
+    #From Advanced Data Analysis from an Elementary Point of View by Cosma Shalizi, Ch. 3, P. 75
+    cv.lm = function(data, formulae, nfolds = 5) {
+      data = na.omit(data)
+      formulae = sapply(formulae, as.formula)
+      n = nrow(data)
+      fold.labels = sample(rep(1:nfolds, length.out = n))
+      mses = matrix(NA, nrow = nfolds, ncol = length(formulae))
+      colnames = as.character(formulae)
+      
+      for (fold in 1:nfolds) {
+        test.rows = which(fold.labels == fold)
+        train = data[-test.rows, ]
+        test = data[test.rows, ]
+        
+        for (form in 1:length(formulae)) {
+          current.model = lm(formula = formulae[[form]], data = train)
+          predictions = predict(current.model, newdata = test)
+          test.responses = eval(formulae[[form]][[2]], envir = test)
+          test.errors = test.responses - predictions
+          mses[fold, form] = mean(test.errors^2)
+        }
+        
+      }
+      return(colMeans(mses))
+    }
     ```
-    
-    Bootstrapping
-    ```{r}
-    ###JULIE'S CODE HERE
-    ```
-    
-####Diagnostics
 
-    Cross Validation Error and Accuracy Rate
-    ```{r}
-    # CV Error (Average Prediction Error + MSE)
-    # Classification accuracy rate
-    ###WANHE & JAE'S CODE HERE
-    ```
-    
     QQ Plot and Residual Analysis
     ```{r}
     # Residual QQ-plot
@@ -359,8 +516,104 @@ library(pander)
     ### WANHE'S CODE HERE
     ```
     
-    PCA
+    Bootstrapping
     ```{r}
-    ###JAE'S CODE HERE
+    ###JULIE'S CODE HERE
     ```
->>>>>>> 2658b82c0ea6be07db0b0d14a5e2514fb578d281
+    
+    Anything else that could be applied - recommended by Cassie and Kevin
+    ```{r}
+    ###WANHE & JAE'S CODE HERE
+    ```
+
+####Logistic Regression
+
+    Model fitting
+    ```{r}
+    #Fit logistic model
+    data2 = data[,c(1,2,grep("ALPHA", colnames(data)))]
+    lg.mdl = glm(ADHD ~ . -ID-ADHD, data = data2, family = binomial)
+    plot(data$ADHD, predict(lg.mdl, type = "response"))
+    predict(lg.mdl, type = "response")
+    
+    table(predict(lg.mdl, type = "response"), data$ADHD)
+    
+    #data.ATT
+    #data.ATT.norm
+    #data.change
+    #data.change.norm
+    ```
+
+    Cross Validation (number of folds should be specified)
+    ```{r}
+    #Cross Validation - specify the number of folds
+    coef(cvfit, s = "lambda.min")
+    ```
+
+    Cross Validation Error
+    ```{r}
+    ###WANHE & JAE'S CODE HERE
+    
+    #Change the below function as needed, this takes multiple formulas in the form of a vector, e.g. c("response ~ var1", "response ~ var2 + var3"), and returns a vector of their MSE's, e.g, c(0.3300, 0.5780)
+    #Function to do k-fold cross-validation on LINEAR models, given as a vector (or list) of model formulae. 
+    #Note that this only returns the CV MSE, not the parameter estimates on each fold.
+    #From Advanced Data Analysis from an Elementary Point of View by Cosma Shalizi, Ch. 3, P. 75
+    cv.lm = function(data, formulae, nfolds = 5) {
+      data = na.omit(data)
+      formulae = sapply(formulae, as.formula)
+      n = nrow(data)
+      fold.labels = sample(rep(1:nfolds, length.out = n))
+      mses = matrix(NA, nrow = nfolds, ncol = length(formulae))
+      colnames = as.character(formulae)
+      
+      for (fold in 1:nfolds) {
+        test.rows = which(fold.labels == fold)
+        train = data[-test.rows, ]
+        test = data[test.rows, ]
+        
+        for (form in 1:length(formulae)) {
+          current.model = lm(formula = formulae[[form]], data = train)
+          predictions = predict(current.model, newdata = test)
+          test.responses = eval(formulae[[form]][[2]], envir = test)
+          test.errors = test.responses - predictions
+          mses[fold, form] = mean(test.errors^2)
+        }
+        
+      }
+      return(colMeans(mses))
+    }
+    ```
+
+    QQ Plot and Residual Analysis
+    ```{r}
+    # Residual QQ-plot
+    # Residual v.s. fitted values
+    # Residual v.s. predictors (if applicable)
+    # Residual v.s. index (histogram or scatter plot of residuals alone to see its distribution)
+    ### WANHE'S CODE HERE
+    ```
+    
+    Bootstrapping
+    ```{r}
+    ###JULIE'S CODE HERE
+    ```
+    
+    Anything else that could be applied - recommended by Cassie and Kevin
+    ```{r}
+    ###WANHE & JAE'S CODE HERE
+    ```
+Notes:
++ Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
++ Linear model is linear, all variables interact
+
+Cassie's notes after first analysis
++ Alpha and Theta analyses differently (which has highest accuracy rate)
++ Cassie has only looked @ Alpha (6-9 Hz), Theta is (3-7 Hz) and just included data for the sake of it
++ Attention Task instead of change scores (vs. baseline) - we should still keep change scores because there is a dependence between attention task and baseline
++ Non-normalized data
++ Visualization (topographic maps by James Long company): ERP Visualization
++ Training phase, is there any test data?
++ Q-Q Plot of residuals
+
++ Who is our advisor? Supervisor pef, advisors Cassie and Kevin?
++ Alphabetical, *all first authors
