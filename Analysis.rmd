@@ -482,13 +482,14 @@ library(pander)
     abline(v = log(cv.fit$lambda.min), col = "dimgray")
     ```
 
-    QQ Plot and Residual Analysis
+    Graphic Analysis
     ```{r}
-    # Residual QQ-plot
-    # Residual v.s. fitted values
-    # Residual v.s. predictors (if applicable)
-    # Residual v.s. index (histogram or scatter plot of residuals alone to see its distribution)
-    ### WANHE'S CODE HERE
+    # Model Predictions vs. True Observations
+    er.pred = predict(cv.fit, newx = as.matrix(data.change.norm[,-c(1,2)]), 
+                      s = "lambda.min", type = "response")
+    plot(data.change.norm$ADHD, er.pred, 
+         main = "Model Predictions vs. True Observations",
+         xlab = "Diagnosis", ylab = "Predictions")
     ```
     
     Bootstrapping
