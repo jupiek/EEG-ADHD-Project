@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ---
 title: "EDA"
 author: "Julie Kim"
@@ -421,11 +420,6 @@ library(pander)
 ####Elastic Net (Lasso and Ridge Regression Combined)
 
     Model fitting &  Cross Validation (number of folds should be specified)
-    ```{r}
-    #Fit Elastic Net regression and choose significant classifiers/ predictors
-    #Cross Validation - specify the number of folds
-    
-    ```
     
     ```{r}
     #Cross Validation and Test Error - specify the number of folds
@@ -447,64 +441,45 @@ library(pander)
       }
       return(mis_rate)
     }
-    
-    
-    
-    
     ```
     
-```{r}
-mis_rate_norm <- test_error(data.norm)
-mis_rate_change_norm <- test_error(data.change.norm)
-mis_rate_act_norm <- test_error(data.ACT.norm)
-mis_rate_con_norm <- test_error(data.CON.norm)
-mis_rate_att_norm <- test_error(data.ATT.norm)
-mis_rate_alpha_norm <- test_error(data.alpha.norm)
-mis_rate_theta_norm <- test_error(data.theta.norm)
-
-mean(mis_rate_norm)
-mean(mis_rate_change_norm)
-mean(mis_rate_act_norm)
-mean(mis_rate_con_norm)
-mean(mis_rate_att_norm)
-mean(mis_rate_alpha_norm)
-mean(mis_rate_theta_norm)
-
-
-```
+    ```{r, cache = TRUE, autodep = TRUE}
+    mis_rate_norm <- test_error(data.norm)
+    mis_rate_change_norm <- test_error(data.change.norm)
+    mis_rate_act_norm <- test_error(data.ACT.norm)
+    mis_rate_con_norm <- test_error(data.CON.norm)
+    mis_rate_att_norm <- test_error(data.ATT.norm)
+    mis_rate_alpha_norm <- test_error(data.alpha.norm)
+    mis_rate_theta_norm <- test_error(data.theta.norm)
     
-    Cross Validation Error
+    mean(mis_rate_norm)
+    mean(mis_rate_change_norm)
+    mean(mis_rate_act_norm)
+    mean(mis_rate_con_norm)
+    mean(mis_rate_att_norm)
+    mean(mis_rate_alpha_norm)
+    mean(mis_rate_theta_norm)
+    ```
+    
     ```{r}
-    ###WANHE & JAE'S CODE HERE
+    set.seed(100)
+    #Fit Elastic Net regression and choose significant classifiers/ predictors
+    #Cross Validation - specify the number of folds
+    er.fit = glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                    y = data.change.norm$ADHD, family = "binomial", alpha = 0.7)
     
-    #Change the below function as needed, this takes multiple formulas in the form of a vector, e.g. c("response ~ var1", "response ~ var2 + var3"), and returns a vector of their MSE's, e.g, c(0.3300, 0.5780)
-    #Function to do k-fold cross-validation on LINEAR models, given as a vector (or list) of model formulae. 
-    #Note that this only returns the CV MSE, not the parameter estimates on each fold.
-    #From Advanced Data Analysis from an Elementary Point of View by Cosma Shalizi, Ch. 3, P. 75
-    cv.lm = function(data, formulae, nfolds = 5) {
-      data = na.omit(data)
-      formulae = sapply(formulae, as.formula)
-      n = nrow(data)
-      fold.labels = sample(rep(1:nfolds, length.out = n))
-      mses = matrix(NA, nrow = nfolds, ncol = length(formulae))
-      colnames = as.character(formulae)
-      
-      for (fold in 1:nfolds) {
-        test.rows = which(fold.labels == fold)
-        train = data[-test.rows, ]
-        test = data[test.rows, ]
-        
-        for (form in 1:length(formulae)) {
-          current.model = lm(formula = formulae[[form]], data = train)
-          predictions = predict(current.model, newdata = test)
-          test.responses = eval(formulae[[form]][[2]], envir = test)
-          test.errors = test.responses - predictions
-          mses[fold, form] = mean(test.errors^2)
-        }
-        
-      }
-      return(colMeans(mses))
-    }
+    cv.fit = cv.glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                       y = data.change.norm$ADHD, family = "binomial", 
+                       alpha = 0.7, type.measure = "class", nfolds = 5)
+    
+    #The optimal value of λ, by 5-fold cross-validation, is 0.032. 
+    #The MSE with this penalty is 0.34.
+    signif(cv.fit$lambda.min, 2)
+    signif(cv.fit$cvm[which(cv.fit$lambda == cv.fit$lambda.min)], 2)
+    
+    #Plot of lambdas with vertical line at minimizing lambda
+    plot.glmnet(er.fit, "lambda")
+    abline(v = log(cv.fit$lambda.min), col = "dimgray")
     ```
 
     QQ Plot and Residual Analysis
@@ -518,13 +493,137 @@ mean(mis_rate_theta_norm)
     
     Bootstrapping
     ```{r}
-    ###JULIE'S CODE HERE
-    ```
+    #Bootstrapping code revised based on code from ADAFAEPOV Chapter 6, Cosma Shalizi
+    resample = function(x) {sample(x, size = length(x), replace = TRUE)}
+        
+    resample.data.frame = function(data) {
+      sample.rows = resample(1:nrow(data))
+      return(data[sample.rows, ])
+    }
     
+    rboot = function(statistic, simulator, B) {
+      tboots = replicate(B, statistic(simulator()))
+      if (is.null(dim(tboots))) {
+        tboots = array(tboots, dim = c(1, B))
+      }
+      return(tboots)
+    }
+    
+    bootstrap = function(tboots, summarizer, ...) {
+      summaries = apply(tboots, 1, summarizer, ...)
+      return(t(summaries))
+    }
+    
+    bootstrap.se = function(statistic, simulator, B) {
+      bootstrap(rboot(statistic, simulator, B), summarizer = sd)
+    }
+    
+    equitails = function(x, alpha) {
+      lower = quantile(x, alpha/2)
+      upper = quantile(x, 1 - alpha/2)
+      return(c(lower, upper))
+    }
+        
+    bootstrap.ci = function(statistic = NULL, simulator = NULL, tboots = NULL, 
+                            B = if (!is.null(tboots)) {ncol(tboots)}, 
+                            t.hat, level) {
+      
+      if (is.null(tboots)) {
+        stopifnot(!is.null(statistic))
+        stopifnot(!is.null(simulator))
+        stopifnot(!is.null(B))
+        tboots = rboot(statistic, simulator, B)
+      }
+      
+      alpha = 1 - level
+      intervals = bootstrap(tboots, summarizer = equitails, alpha = alpha)
+      upper = t.hat + (t.hat - intervals[, 1])
+      lower = t.hat + (t.hat - intervals[, 2])
+      CIs = cbind(lower = lower, upper = upper)
+      
+      return(CIs)
+      
+    }
+    ```
+    ```{r, include = FALSE, warning = FALSE, message = FALSE}
+    #Function load.cis()
+    #Returns the a-level CI of a factor model's loadings - first factor only
+    #Method of Prediction: Case Resampling
+    #Input
+      #Data frame on stocks with dates and stock prices or returns (df)
+      #Number of factors (f)
+      #Alpha level for confidence interval (a)
+    #Output
+      #Plot of the factor loadings with confidence intervals denoted by error bars
+    
+    load.cis = function(df, f = 1, a = 0.90) {
+      
+      f.mdl = factanal(df, factors = f)
+      
+      resample = function() {resample.data.frame(df)}
+          
+      estimator = function(data) {
+        mdl = factanal(data, factors = f)
+        lgs = mdl$loadings[,1]
+        return(lgs)
+      }
+      
+      lgs = f.mdl$loadings[,1]
+      
+      load.cis = bootstrap.ci(statistic = estimator,
+                              simulator = resample, 
+                              B = 1000, t.hat = lgs, 
+                              level = a)
+      
+      loadings = sort(lgs)
+      names = rownames(lgs)[order(lgs)]
+      bp = barplot(loadings, names.arg = names, las = 2, 
+                   ylim = c(0, max(load.cis)+0.05),
+                   main = "Factor 1 Loadings", 
+                   sub = paste("*confidence intervals denoted in red; level =", a), 
+                   ylab = "Loadings")
+      error.bar(bp, loadings, load.cis[,1][order(lgs)], load.cis[,2][order(lgs)])
+      
+    }
+    ```
+    ```{r, cache = TRUE, autodep = TRUE}
+    
+    ```
+
     Anything else that could be applied - recommended by Cassie and Kevin
     ```{r}
     ###WANHE & JAE'S CODE HERE
     ```
+
+    Notes:
+    + Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
+    + Linear model is linear, all variables interact
+    
+    Cassie's notes after first analysis
+    + Alpha and Theta analyses differently (which has highest accuracy rate)
+    + Cassie has only looked @ Alpha (6-9 Hz), Theta is (3-7 Hz) and just included data for the sake of it
+    + Attention Task instead of change scores (vs. baseline) - we should still keep change scores because there is a dependence between attention task and baseline
+    + Non-normalized data
+    + Visualization (topographic maps by James Long company): ERP Visualization
+    + Training phase, is there any test data?
+    + Q-Q Plot of residuals
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ####Logistic Regression
 
@@ -543,77 +642,6 @@ mean(mis_rate_theta_norm)
     #data.change
     #data.change.norm
     ```
-
-    Cross Validation (number of folds should be specified)
-    ```{r}
-    #Cross Validation - specify the number of folds
-    coef(cvfit, s = "lambda.min")
-    ```
-
-    Cross Validation Error
-    ```{r}
-    ###WANHE & JAE'S CODE HERE
-    
-    #Change the below function as needed, this takes multiple formulas in the form of a vector, e.g. c("response ~ var1", "response ~ var2 + var3"), and returns a vector of their MSE's, e.g, c(0.3300, 0.5780)
-    #Function to do k-fold cross-validation on LINEAR models, given as a vector (or list) of model formulae. 
-    #Note that this only returns the CV MSE, not the parameter estimates on each fold.
-    #From Advanced Data Analysis from an Elementary Point of View by Cosma Shalizi, Ch. 3, P. 75
-    cv.lm = function(data, formulae, nfolds = 5) {
-      data = na.omit(data)
-      formulae = sapply(formulae, as.formula)
-      n = nrow(data)
-      fold.labels = sample(rep(1:nfolds, length.out = n))
-      mses = matrix(NA, nrow = nfolds, ncol = length(formulae))
-      colnames = as.character(formulae)
-      
-      for (fold in 1:nfolds) {
-        test.rows = which(fold.labels == fold)
-        train = data[-test.rows, ]
-        test = data[test.rows, ]
-        
-        for (form in 1:length(formulae)) {
-          current.model = lm(formula = formulae[[form]], data = train)
-          predictions = predict(current.model, newdata = test)
-          test.responses = eval(formulae[[form]][[2]], envir = test)
-          test.errors = test.responses - predictions
-          mses[fold, form] = mean(test.errors^2)
-        }
-        
-      }
-      return(colMeans(mses))
-    }
-    ```
-
-    QQ Plot and Residual Analysis
-    ```{r}
-    # Residual QQ-plot
-    # Residual v.s. fitted values
-    # Residual v.s. predictors (if applicable)
-    # Residual v.s. index (histogram or scatter plot of residuals alone to see its distribution)
-    ### WANHE'S CODE HERE
-    ```
-    
-    Bootstrapping
-    ```{r}
-    ###JULIE'S CODE HERE
-    ```
-    
-    Anything else that could be applied - recommended by Cassie and Kevin
-    ```{r}
-    ###WANHE & JAE'S CODE HERE
-    ```
-Notes:
-+ Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
-+ Linear model is linear, all variables interact
-
-Cassie's notes after first analysis
-+ Alpha and Theta analyses differently (which has highest accuracy rate)
-+ Cassie has only looked @ Alpha (6-9 Hz), Theta is (3-7 Hz) and just included data for the sake of it
-+ Attention Task instead of change scores (vs. baseline) - we should still keep change scores because there is a dependence between attention task and baseline
-+ Non-normalized data
-+ Visualization (topographic maps by James Long company): ERP Visualization
-+ Training phase, is there any test data?
-+ Q-Q Plot of residuals
 
 + Who is our advisor? Supervisor pef, advisors Cassie and Kevin?
 + Alphabetical, *all first authors
