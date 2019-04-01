@@ -531,26 +531,29 @@ biplot(prout.theta.norm, scale=0)
     ```{r}
     #Cross Validation and Test Error - specify the number of folds
     ###WANHE & JAE'S CODE HERE
-
+    
     test_error <- function(data){
       #leave out 10% of test data and get the misclassification rate
       n <- nrow(data)
       m <- round(.1*n)
-      mis_rate <- numeric(0)
+      test_er<- numeric(0)
+      train_er <- numeric(0)
       for(i in 1:100){
         test_indx <- sample(1:n, m, replace=FALSE)
         test <- data[test_indx,]
         train <- data[-test_indx,]
         #cross validation
         cvfit <- cv.glmnet(y=train$ADHD, x=as.matrix(train[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class", nfolds=5)
-        mis_rate[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
+        test_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
+        train_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(train[, -c(1,2)])) != train$ADHD)
       
       }
-      return(mis_rate)
+      return(list(train_er, test_er))
     }
     ```
     
-    ```{r, cache = TRUE, autodep = TRUE}
+    ```{r}
+    
     mis_rate_norm <- test_error(data.norm)
     mis_rate_change_norm <- test_error(data.change.norm)
     mis_rate_act_norm <- test_error(data.ACT.norm)
@@ -559,14 +562,37 @@ biplot(prout.theta.norm, scale=0)
     mis_rate_alpha_norm <- test_error(data.alpha.norm)
     mis_rate_theta_norm <- test_error(data.theta.norm)
     
-    mean(mis_rate_norm)
-    mean(mis_rate_change_norm)
-    mean(mis_rate_act_norm)
-    mean(mis_rate_con_norm)
-    mean(mis_rate_att_norm)
-    mean(mis_rate_alpha_norm)
-    mean(mis_rate_theta_norm)
+    
     ```
+    
+```{r}
+mean(mis_rate_norm[[1]])
+mean(mis_rate_norm[[2]])
+
+mean(mis_rate_change_norm[[1]])
+mean(mis_rate_change_norm[[2]])
+mean(mis_rate_act_norm[[1]])
+mean(mis_rate_act_norm[[2]])
+mean(mis_rate_con_norm[[1]])
+mean(mis_rate_con_norm[[2]])
+mean(mis_rate_att_norm[[1]])
+mean(mis_rate_att_norm[[2]])
+
+    mean(mis_rate_alpha_norm[[1]])
+    mean(mis_rate_alpha_norm[[2]])
+mean(mis_rate_theta_norm[[1]])
+mean(mis_rate_theta_norm[[2]])
+plot(c(1:7), c(mean(mis_rate_norm[[1]]), mean(mis_rate_change_norm[[1]]), mean(mis_rate_act_norm[[1]]), mean(mis_rate_con_norm[[1]]), mean(mis_rate_att_norm[[1]]),     mean(mis_rate_alpha_norm[[1]]), mean(mis_rate_theta_norm[[1]])), ylim=c(0.1, 0.68), ylab="misclassification error", type="l", xlab="dataset", col="blue")
+lines(c(1:7), c(mean(mis_rate_norm[[2]]), mean(mis_rate_change_norm[[2]]), mean(mis_rate_act_norm[[2]]), mean(mis_rate_con_norm[[2]]), mean(mis_rate_att_norm[[2]]),     mean(mis_rate_alpha_norm[[2]]), mean(mis_rate_theta_norm[[2]])), col="red")
+legend("topright",legend = c("test error", "train error"), col = c("red", "blue"), lty=1, cex=0.8)
+```
+    
+```{r}
+#diagnosis for second full dataset
+cvfit <- cv.glmnet(y=data.change.norm$ADHD, x=as.matrix(data.change.norm[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class", nfolds=5)
+coef(cvfit)
+```
+    
     
     ```{r}
     set.seed(100)
