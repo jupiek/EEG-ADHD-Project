@@ -1,7 +1,7 @@
 ---
-title: "EDA"
+title: "Data Analysis"
 author: "Julie Kim"
-date: "2/13/2019"
+date: "04/03/2019"
 output: html_document
 ---
 
@@ -680,53 +680,49 @@ coef(cvfit)
     }
     ```
     ```{r, include = FALSE, warning = FALSE, message = FALSE}
-    #Function load.cis()
-    #Returns the a-level CI of a factor model's loadings - first factor only
+    #Function mc.cis()
+    #Returns the a-level CI of an elastic-net model's misclassification rates
     #Method of Prediction: Case Resampling
     #Input
       #Data frame on stocks with dates and stock prices or returns (df)
-      #Number of factors (f)
       #Alpha level for confidence interval (a)
     #Output
-      #Plot of the factor loadings with confidence intervals denoted by error bars
+      #Misclassification Error
     
-    load.cis = function(df, f = 1, a = 0.90) {
+    mc.cis = function(df, a = 0.95) {
       
-      f.mdl = factanal(df, factors = f)
-      
+      en.mdl = cv.glmnet(y = df$ADHD, x = as.matrix(df[,-c(1,2)]), 
+                         family = "binomial", alpha = 0.7, 
+                         type.measure = "class", nfolds = 5)
+      mc = mean(predict(en.mdl, s = "lambda.min", type = "class", 
+                        newx = as.matrix(df[,-c(1,2)])) != df$ADHD)
+        
       resample = function() {resample.data.frame(df)}
           
       estimator = function(data) {
-        mdl = factanal(data, factors = f)
-        lgs = mdl$loadings[,1]
-        return(lgs)
+        en.mdl = cv.glmnet(y = data$ADHD, x = as.matrix(data[,-c(1,2)]), 
+                           family = "binomial", alpha = 0.7, 
+                           type.measure = "class", nfolds = 5)
+        mc =  mean(predict(en.mdl, s = "lambda.min", type = "class", 
+                        newx = as.matrix(data[,-c(1,2)])) != data$ADHD)
+        return(mc)
       }
       
-      lgs = f.mdl$loadings[,1]
+      mc.cis = bootstrap.ci(statistic = estimator,
+                            simulator = resample, 
+                            B = 1000, t.hat = mc, 
+                            level = a)
       
-      load.cis = bootstrap.ci(statistic = estimator,
-                              simulator = resample, 
-                              B = 1000, t.hat = lgs, 
-                              level = a)
-      
-      loadings = sort(lgs)
-      names = rownames(lgs)[order(lgs)]
-      bp = barplot(loadings, names.arg = names, las = 2, 
-                   ylim = c(0, max(load.cis)+0.05),
-                   main = "Factor 1 Loadings", 
-                   sub = paste("*confidence intervals denoted in red; level =", a), 
-                   ylab = "Loadings")
-      error.bar(bp, loadings, load.cis[,1][order(lgs)], load.cis[,2][order(lgs)])
+      return(mc.cis)
       
     }
     ```
     ```{r, cache = TRUE, autodep = TRUE}
-    
-    ```
-
-    Anything else that could be applied - recommended by Cassie and Kevin
-    ```{r}
-    ###WANHE & JAE'S CODE HERE
+    #Misclassification Rate - Confidence Intervals by Bootstrapping over 1000 iterations
+    #95%
+    mc.cis(data.change.norm)
+    #90%
+    mc.cis(data.change.norm, 0.9)
     ```
 
     Notes:
@@ -776,6 +772,3 @@ coef(cvfit)
     #data.change
     #data.change.norm
     ```
-
-+ Who is our advisor? Supervisor pef, advisors Cassie and Kevin?
-+ Alphabetical, *all first authors
