@@ -1,7 +1,7 @@
 ---
 title: "Data Analysis"
 author: "Julie Kim"
-date: "04/03/2019"
+date: "04/08/2019"
 output: html_document
 ---
 
@@ -14,6 +14,7 @@ library(tidyverse)
 library(ggplot2)
 library(glmnet)
 library(pander)
+library(randomForest)
 ```
     
     
@@ -724,6 +725,45 @@ coef(cvfit)
     #90%
     mc.cis(data.change.norm, 0.9)
     ```
+
+####Random Forest
+
+    Model fitting &  Cross Validation (number of folds should be specified)
+    ```{r}
+    #diagnosis for second full dataset
+    rf.mdl = randomForest(x = as.matrix(data.change.norm[,-c(1,2)]),
+                          y = data.change.norm$ADHD)
+    plot(data.change.norm$ADHD, predict(rf.mdl), 
+         main = "Model Predictions vs. True Observations",
+         xlab = "Diagnosis", ylab = "Predictions")
+    
+    #Error vs. # of Trees
+    plot(rf.mdl)
+    
+    #Importance of each variable
+    importance(rf.mdl)
+    
+    #36.62% misclassification
+    mean(ifelse(predict(rf.mdl) > 0.5, 1, 0) != data.change.norm$ADHD)
+    ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    data = data.change.norm
+    n <- nrow(data)
+    m <- round(.1*n)
+    error = numeric(0)
+    for(i in 1:100){
+      test_indx <- sample(1:0.4*nrow(data), m, replace=FALSE)
+      test <- data[test_indx,]
+      train <- data[-test_indx,]
+      #cross validation
+      fit = randomForest(x = as.matrix(train[,-c(1,2)]), y = train$ADHD)
+      pred = ifelse(predict(fit, newdata = as.matrix(test[,-c(1,2)])) > 0.5, 1, 0)
+      
+      error[i] <- mean(pred != test$ADHD)
+    }
+    mean(error)
+    ```
+    
 
     Notes:
     + Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
