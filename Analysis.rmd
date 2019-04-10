@@ -524,7 +524,22 @@ biplot(prout.theta.norm, scale=0)
 
 
 ###Modeling
+    
+    Base Rate
+    ```{r}
+    br = function(data) {
+      return(mean(data$ADHD == 0))
+    }
 
+    base = br(data.norm)
+    br(data.change.norm)
+    br(data.ACT.norm)
+    br(data.CON.norm)
+    br(data.ATT.norm)
+    br(data.alpha.norm)
+    br(data.theta.norm)
+    ```
+    
 ####Elastic Net (Lasso and Ridge Regression Combined)
 
     Model fitting &  Cross Validation (number of folds should be specified)
@@ -554,7 +569,7 @@ biplot(prout.theta.norm, scale=0)
     ```
     
     ```{r}
-    
+    set.seed(100)
     mis_rate_norm <- test_error(data.norm)
     mis_rate_change_norm <- test_error(data.change.norm)
     mis_rate_act_norm <- test_error(data.ACT.norm)
@@ -567,6 +582,7 @@ biplot(prout.theta.norm, scale=0)
     ```
     
 ```{r}
+set.seed(100)
 mean(mis_rate_norm[[1]])
 mean(mis_rate_norm[[2]])
 
@@ -618,6 +634,7 @@ coef(cvfit)
 
     Graphic Analysis
     ```{r}
+    set.seed(100)
     # Model Predictions vs. True Observations
     er.pred = predict(cv.fit, newx = as.matrix(data.change.norm[,-c(1,2)]), 
                       s = "lambda.min", type = "response")
@@ -719,6 +736,7 @@ coef(cvfit)
     }
     ```
     ```{r, cache = TRUE, autodep = TRUE}
+    set.seed(100)
     #Misclassification Rate - Confidence Intervals by Bootstrapping over 1000 iterations
     #95%
     mc.cis(data.change.norm)
@@ -730,9 +748,11 @@ coef(cvfit)
 
     Model fitting &  Cross Validation (number of folds should be specified)
     ```{r}
+    set.seed(100)
     #diagnosis for second full dataset
     rf.mdl = randomForest(x = as.matrix(data.change.norm[,-c(1,2)]),
-                          y = data.change.norm$ADHD)
+                          y = data.change.norm$ADHD,
+                          ntree = 600)
     plot(data.change.norm$ADHD, predict(rf.mdl), 
          main = "Model Predictions vs. True Observations",
          xlab = "Diagnosis", ylab = "Predictions")
@@ -740,30 +760,69 @@ coef(cvfit)
     #Error vs. # of Trees
     plot(rf.mdl)
     
-    #Importance of each variable
-    importance(rf.mdl)
-    
-    #36.62% misclassification
+    #roughly 45% misclassification
     mean(ifelse(predict(rf.mdl) > 0.5, 1, 0) != data.change.norm$ADHD)
+    
+    pred = predict(rf.mdl)
+    CM = table(pred, data.change.norm$ADHD)
+    
+    #MSE = 0.2423
+    mean(rf.mdl$mse)
+    
+    #Variable Importance Plot
+    varImpPlot(rf.mdl, sort = T, n.var = 10,
+               main = "Top 10 - Variable Importance")
+    
+    #1. Return probability that class = 1
+    #2. Threshold said probabilities to output 0 or 1; default is 0.5
+    #ROC Curve can help define those threholds
+      #grid from 0 to 1, increments of 0.1
+      #try picking the right parameter the minimizes training error the most
+      #COMPLETE HERE
     ```
     ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
-    data = data.change.norm
-    n <- nrow(data)
-    m <- round(.1*n)
-    error = numeric(0)
-    for(i in 1:100){
-      test_indx <- sample(1:0.4*nrow(data), m, replace=FALSE)
-      test <- data[test_indx,]
-      train <- data[-test_indx,]
-      #cross validation
-      fit = randomForest(x = as.matrix(train[,-c(1,2)]), y = train$ADHD)
-      pred = ifelse(predict(fit, newdata = as.matrix(test[,-c(1,2)])) > 0.5, 1, 0)
+    mc.rf = function(data) {
+      n <- nrow(data)
+      m <- round(.1*n)
+      error = numeric(0)
       
-      error[i] <- mean(pred != test$ADHD)
+      for(i in 1:100){
+        test_indx <- sample(1:n, m, replace=FALSE)
+        test <- data[test_indx,]
+        train <- data[-test_indx,]
+        #cross validation
+        fit = randomForest(x = as.matrix(train[,-c(1,2)]), y = train$ADHD, 
+                           ntree = 600)
+        pred = ifelse(predict(fit, newdata = as.matrix(test[,-c(1,2)])) > 0.5, 1, 0)
+        
+        error[i] <- mean(pred != test$ADHD)
+      }
+      return(mean(error))
     }
-    mean(error)
     ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    norm.mc.rf = mc.rf(data.norm)
+    change.norm.mc.rf = mc.rf(data.change.norm)
+    ACT.norm.mc.rf = mc.rf(data.ACT.norm)
+    CON.norm.mc.rf = mc.rf(data.CON.norm)
+    ATT.norm.mc.rf = mc.rf(data.ATT.norm)
+    alpha.norm.mc.rf = mc.rf(data.alpha.norm)
+    theta.norm.mc.rf = mc.rf(data.theta.norm)
     
+    norm.mc.rf
+    change.norm.mc.rf
+    ACT.norm.mc.rf
+    CON.norm.mc.rf
+    ATT.norm.mc.rf
+    alpha.norm.mc.rf
+    theta.norm.mc.rf
+    ```
+    ```{r}
+    #We observed a 20% increase in classification accuracy
+    base
+    ```
+
 
     Notes:
     + Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
