@@ -772,13 +772,38 @@ coef(cvfit)
     #Variable Importance Plot
     varImpPlot(rf.mdl, sort = T, n.var = 10,
                main = "Top 10 - Variable Importance")
+    ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    mc.rf.pred = function(data, threshold = 0.5) {
+      mdl = randomForest(x = as.matrix(data[,-c(1,2)]),
+                         y = data$ADHD,
+                         ntree = 600)
+      pred = predict(mdl)
+      
+      #1. Return probability that class = 1
+      #2. Threshold said probabilities to output 0 or 1; default is 0.5
+      #ROC Curve can help define those threholds
+        #grid from 0 to 1, increments of 0.1
+        #try picking the right parameter the minimizes training error the most
+      mc = numeric(0)
+      for(i in seq(0, 1, by = 0.1)) {
+        mc[i*10+1] = mean(ifelse(pred > i, 1, 0) != data$ADHD)
+      }
+
+      plot(seq(0, 1, by = 0.1), mc, type = "l", 
+           main = deparse(substitute(data)), 
+           xlab = "Threshold", ylab = "Misclassification Rate")
+      return(mean(ifelse(pred > threshold, 1, 0) != data$ADHD))
+    }
     
-    #1. Return probability that class = 1
-    #2. Threshold said probabilities to output 0 or 1; default is 0.5
-    #ROC Curve can help define those threholds
-      #grid from 0 to 1, increments of 0.1
-      #try picking the right parameter the minimizes training error the most
-      #COMPLETE HERE
+    mc.rf.pred(data.norm, 0.7)
+    mc.rf.pred(data.change.norm, 0.5)
+    mc.rf.pred(data.ACT.norm, 0.7)
+    mc.rf.pred(data.CON.norm, 0.8)
+    mc.rf.pred(data.ATT.norm, 0.7)
+    mc.rf.pred(data.alpha.norm, 0.8)
+    mc.rf.pred(data.theta.norm, 0.6)
     ```
     ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
     mc.rf = function(data) {
