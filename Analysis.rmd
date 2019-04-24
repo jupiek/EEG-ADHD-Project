@@ -413,113 +413,30 @@ library(randomForest)
     PCA
 
 ```{r}
-prout.norm = prcomp(data.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.change.norm = prcomp(data.change.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.ACT.norm = prcomp(data.ACT.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.CON.norm = prcomp(data.CON.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.ATT.norm = prcomp(data.ATT.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.alpha.norm = prcomp(data.alpha.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-prout.theta.norm = prcomp(data.theta.norm[,-c(1:2)], scale=TRUE, center=TRUE)
-```
-
-```{r}
-# Proportion of Variance Explained by Normal Data
-# Cumulative Proportion of Variance Explained by Normal Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.norm = prout.norm$sdev^2
-pve.norm = prvar.norm/sum(prvar.norm)
-plot(pve.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.norm, type="lines", main = "Screeplot")
-
-# Proportion of Variance Explained by Changed Normal Data
-# Cumulative Proportion of Variance Explained by Changed Normal Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.change.norm = prout.change.norm$sdev^2
-pve.change.norm = prvar.change.norm/sum(prvar.change.norm)
-plot(pve.change.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.change.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.change.norm, type="lines", main = "Screeplot")
+res.norm = prcomp(data.norm[,-c(1:2)], scale=TRUE, center=TRUE)
+res.change.norm = princomp(data.change.norm[,-c(1:2)])
+res.ACT.norm = princomp(data.ACT.norm[,-c(1:2)])
+res.CON.norm = princomp(data.CON.norm[,-c(1:2)])
+res.ATT.norm = prcomp(data.ATT.norm[,-c(1:2)], scale=TRUE, center=TRUE)
+res.alpha.norm = princomp(data.alpha.norm[,-c(1:2)])
+res.theta.norm = princomp(data.theta.norm[,-c(1:2)])
 
 
-# Proportion of Variance Explained by ACT Data
-# Cumulative Proportion of Variance Explained by ACT Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.ACT.norm = prout.ACT.norm$sdev^2
-pve.ACT.norm = prvar.ACT.norm/sum(prvar.ACT.norm)
-plot(pve.ACT.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.ACT.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.ACT.norm, type="lines", main = "Screeplot")
+plot(res.norm$x[,1],res.norm$x[,2],
+     col=c("red","blue")[data.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.change.norm$scores[,1],res.change.norm$scores[,2],
+     col=c("red","blue")[data.change.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.ACT.norm$scores[,1],res.ACT.norm$scores[,2],
+     col=c("red","blue")[data.ACT.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.CON.norm$scores[,1],res.CON.norm$scores[,2],
+     col=c("red","blue")[data.CON.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.ATT.norm$x[,1],res.ATT.norm$x[,2],
+     col=c("red","blue")[data.ATT.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.alpha.norm$scores[,1],res.alpha.norm$scores[,2],
+     col=c("red","blue")[data.alpha.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.theta.norm$scores[,1],res.theta.norm$scores[,2],
+     col=c("red","blue")[data.theta.norm$ADHD+1], pch=16, asp=TRUE)
 
-# Proportion of Variance Explained by CON Data
-# Cumulative Proportion of Variance Explained by CON Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.CON.norm = prout.CON.norm$sdev^2
-pve.CON.norm = prvar.CON.norm/sum(prvar.CON.norm)
-plot(pve.CON.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.CON.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.CON.norm, type="lines", main = "Screeplot")
-
-
-# Proportion of Variance Explained by ATT Data
-# Cumulative Proportion of Variance Explained by ATT Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.ATT.norm = prout.ATT.norm$sdev^2
-pve.ATT.norm = prvar.ATT.norm/sum(prvar.ATT.norm)
-plot(pve.ATT.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.ATT.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.ATT.norm, type="lines", main = "Screeplot")
-
-
-# Proportion of Variance Explained by alpha Data
-# Cumulative Proportion of Variance Explained by alpha Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.alpha.norm = prout.alpha.norm$sdev^2
-pve.alpha.norm = prvar.alpha.norm/sum(prvar.alpha.norm)
-plot(pve.alpha.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.alpha.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.alpha.norm, type="lines", main = "Screeplot")
-
-# Proportion of Variance Explained by theta Data
-# Cumulative Proportion of Variance Explained by theta Data
-# Screeplot
-par(mfrow=c(2,2))
-prvar.theta.norm = prout.theta.norm$sdev^2
-pve.theta.norm = prvar.theta.norm/sum(prvar.theta.norm)
-plot(pve.theta.norm, xlab="Principal Component", ylab ="",
-     main = "Prop. of Var.")
-plot(cumsum(pve.theta.norm), xlab="Principal Component", ylab ="",
-     main = "Cum. Prop. of Var.")
-screeplot(prout.theta.norm, type="lines", main = "Screeplot")
-```
-
-```{r}
-# Bi-plots of Principal Component Scores for all data
-biplot(prout.norm, scale=0)
-biplot(prout.change.norm, scale=0)
-biplot(prout.ACT.norm, scale=0)
-biplot(prout.CON.norm, scale=0)
-biplot(prout.ATT.norm, scale=0)
-biplot(prout.alpha.norm, scale=0)
-biplot(prout.theta.norm, scale=0)
 ```
 
 
