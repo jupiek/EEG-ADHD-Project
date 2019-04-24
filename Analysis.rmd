@@ -784,7 +784,6 @@ biplot(prout.theta.norm, scale=0)
     ```
 
 ####Random Forest
-
     Model fitting &  Cross Validation (number of folds should be specified)
     ```{r}
     set.seed(100)
@@ -883,7 +882,8 @@ biplot(prout.theta.norm, scale=0)
     theta.norm.mc.rf
     ```
     ```{r}
-    #We observed a 20% increase in classification accuracy
+    #We observed a 36.47% increase in classification accuracy
+    (base - 0.34)/base
     base
     ```
 
