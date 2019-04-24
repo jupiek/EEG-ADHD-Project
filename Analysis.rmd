@@ -525,12 +525,13 @@ biplot(prout.theta.norm, scale=0)
 
 ###Modeling
     
-    Base Rate
+    Base Misclassification Rate - we use this is a comparison to the models. 
+    "If we guessed that all subjects did not have ADHD, how would we perform /
+    how often would we be incorrect?"
+    Every model under consideration should perform *at least* better than this 
+    base misclassification rate. If not, don't even bother!
     ```{r}
-    br = function(data) {
-      return(mean(data$ADHD == 0))
-    }
-
+    br = function(data) {return(mean(data$ADHD == 0))}
     base = br(data.norm)
     br(data.change.norm)
     br(data.ACT.norm)
@@ -543,7 +544,6 @@ biplot(prout.theta.norm, scale=0)
 ####Elastic Net (Lasso and Ridge Regression Combined)
 
     Model fitting &  Cross Validation (number of folds should be specified)
-    
     ```{r}
     #Cross Validation and Test Error - specify the number of folds
     ###WANHE & JAE'S CODE HERE
@@ -559,16 +559,19 @@ biplot(prout.theta.norm, scale=0)
         test <- data[test_indx,]
         train <- data[-test_indx,]
         #cross validation
-        cvfit <- cv.glmnet(y=train$ADHD, x=as.matrix(train[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class", nfolds=5)
-        test_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
-        train_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", newx = as.matrix(train[, -c(1,2)])) != train$ADHD)
+        cvfit <- cv.glmnet(y=train$ADHD, x=as.matrix(train[, -c(1,2)]), 
+                           family="binomial", alpha=0.7, 
+                           type.measure = "class", nfolds=5)
+        test_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", 
+                                   newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
+        train_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", 
+                                    newx = as.matrix(train[, -c(1,2)])) != train$ADHD)
       
       }
       return(list(train_er, test_er))
     }
     ```
-    
-    ```{r}
+    ```{r, cache = TRUE, autodep = TRUE}
     set.seed(100)
     mis_rate_norm <- test_error(data.norm)
     mis_rate_change_norm <- test_error(data.change.norm)
@@ -577,40 +580,53 @@ biplot(prout.theta.norm, scale=0)
     mis_rate_att_norm <- test_error(data.ATT.norm)
     mis_rate_alpha_norm <- test_error(data.alpha.norm)
     mis_rate_theta_norm <- test_error(data.theta.norm)
-    
-    
     ```
+    ```{r}
+    set.seed(100)
+    mean(mis_rate_norm[[1]])
+    mean(mis_rate_norm[[2]])
     
-```{r}
-set.seed(100)
-mean(mis_rate_norm[[1]])
-mean(mis_rate_norm[[2]])
-
-mean(mis_rate_change_norm[[1]])
-mean(mis_rate_change_norm[[2]])
-mean(mis_rate_act_norm[[1]])
-mean(mis_rate_act_norm[[2]])
-mean(mis_rate_con_norm[[1]])
-mean(mis_rate_con_norm[[2]])
-mean(mis_rate_att_norm[[1]])
-mean(mis_rate_att_norm[[2]])
-
+    mean(mis_rate_change_norm[[1]])
+    mean(mis_rate_change_norm[[2]])
+    mean(mis_rate_act_norm[[1]])
+    mean(mis_rate_act_norm[[2]])
+    mean(mis_rate_con_norm[[1]])
+    mean(mis_rate_con_norm[[2]])
+    mean(mis_rate_att_norm[[1]])
+    mean(mis_rate_att_norm[[2]])
+    
     mean(mis_rate_alpha_norm[[1]])
     mean(mis_rate_alpha_norm[[2]])
-mean(mis_rate_theta_norm[[1]])
-mean(mis_rate_theta_norm[[2]])
-plot(c(1:7), c(mean(mis_rate_norm[[1]]), mean(mis_rate_change_norm[[1]]), mean(mis_rate_act_norm[[1]]), mean(mis_rate_con_norm[[1]]), mean(mis_rate_att_norm[[1]]),     mean(mis_rate_alpha_norm[[1]]), mean(mis_rate_theta_norm[[1]])), ylim=c(0.1, 0.68), ylab="misclassification error", type="l", xlab="dataset", col="blue")
-lines(c(1:7), c(mean(mis_rate_norm[[2]]), mean(mis_rate_change_norm[[2]]), mean(mis_rate_act_norm[[2]]), mean(mis_rate_con_norm[[2]]), mean(mis_rate_att_norm[[2]]),     mean(mis_rate_alpha_norm[[2]]), mean(mis_rate_theta_norm[[2]])), col="red")
-legend("topright",legend = c("test error", "train error"), col = c("red", "blue"), lty=1, cex=0.8)
-```
+    mean(mis_rate_theta_norm[[1]])
+    mean(mis_rate_theta_norm[[2]])
     
-```{r}
-#diagnosis for second full dataset
-cvfit <- cv.glmnet(y=data.change.norm$ADHD, x=as.matrix(data.change.norm[, -c(1,2)]), family="binomial", alpha=0.7, type.measure = "class", nfolds=5)
-coef(cvfit)
-```
+    plot(c(1:7), c(mean(mis_rate_norm[[1]]), mean(mis_rate_change_norm[[1]]), 
+                   mean(mis_rate_act_norm[[1]]), mean(mis_rate_con_norm[[1]]), 
+                   mean(mis_rate_att_norm[[1]]), mean(mis_rate_alpha_norm[[1]]), 
+                   mean(mis_rate_theta_norm[[1]])), ylim=c(0.1, 0.68), 
+         ylab="misclassification error", type="l", xlab="dataset", col="blue")
+    lines(c(1:7), c(mean(mis_rate_norm[[2]]), mean(mis_rate_change_norm[[2]]), 
+                    mean(mis_rate_act_norm[[2]]), mean(mis_rate_con_norm[[2]]), 
+                    mean(mis_rate_att_norm[[2]]), mean(mis_rate_alpha_norm[[2]]),
+                    mean(mis_rate_theta_norm[[2]])), col="red")
+    legend("topright",legend = c("test error", "train error"), 
+           col = c("red", "blue"), lty=1, cex=0.8)
+    ```
     
+    Diagnosis for second full dataset
+    ```{r}
+    cvfit <- cv.glmnet(y=data.change.norm$ADHD, 
+                       x=as.matrix(data.change.norm[, -c(1,2)]), 
+                       family="binomial", alpha=0.7, 
+                       type.measure = "class", nfolds=5)
+    coef(cvfit)
+    ```
     
+    Tuning alpha: Run through alpha values from 0 to 1 in increments of 0.1. 
+    Return a table of alpha values and the number of times out of 500 trials 
+    that it produces the minimum misclassification error. The alpha values that 
+    minimize the misclassification error for the `data.change.norm` dataset 
+    are 0.8 and 0.9. 
     ```{r, cache = TRUE, autodep = TRUE}
     set.seed(100)
     minimums = vector()
@@ -629,19 +645,23 @@ coef(cvfit)
     }
     sort(table(as.numeric(minimums)))
     #returns best alpha
+    #0 0.1 0.3 0.2 0.5 0.4 0.6 0.7   1 0.8 0.9
+    #8  21  42  47  57  60  72  73  94  97  97
     ```
+    
+    Analysis with alpha = 0.9
     ```{r}
     set.seed(100)
     #Fit Elastic Net regression and choose significant classifiers/ predictors
     #Cross Validation - specify the number of folds
     er.fit = glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
-                    y = data.change.norm$ADHD, family = "binomial", alpha = 0.7)
+                    y = data.change.norm$ADHD, family = "binomial", alpha = 0.9)
     
     cv.fit = cv.glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
                        y = data.change.norm$ADHD, family = "binomial", 
-                       alpha = 0.7, type.measure = "class", nfolds = 5)
+                       alpha = 0.9, type.measure = "class", nfolds = 5)
     
-    #The optimal value of λ, by 5-fold cross-validation, is 0.032. 
+    #The optimal value of λ, by 5-fold cross-validation, is 0.075. 
     #The MSE with this penalty is 0.34.
     signif(cv.fit$lambda.min, 2)
     signif(cv.fit$cvm[which(cv.fit$lambda == cv.fit$lambda.min)], 2)
@@ -729,7 +749,7 @@ coef(cvfit)
     mc.cis = function(df, a = 0.95) {
       
       en.mdl = cv.glmnet(y = df$ADHD, x = as.matrix(df[,-c(1,2)]), 
-                         family = "binomial", alpha = 0.7, 
+                         family = "binomial", alpha = 0.9, 
                          type.measure = "class", nfolds = 5)
       mc = mean(predict(en.mdl, s = "lambda.min", type = "class", 
                         newx = as.matrix(df[,-c(1,2)])) != df$ADHD)
@@ -738,7 +758,7 @@ coef(cvfit)
           
       estimator = function(data) {
         en.mdl = cv.glmnet(y = data$ADHD, x = as.matrix(data[,-c(1,2)]), 
-                           family = "binomial", alpha = 0.7, 
+                           family = "binomial", alpha = 0.9, 
                            type.measure = "class", nfolds = 5)
         mc =  mean(predict(en.mdl, s = "lambda.min", type = "class", 
                         newx = as.matrix(data[,-c(1,2)])) != data$ADHD)
