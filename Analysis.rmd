@@ -611,6 +611,25 @@ coef(cvfit)
 ```
     
     
+    ```{r, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    minimums = vector()
+    for(i in 1:500) {
+      ms = vector(length = 11)
+      names(ms) = seq(0, 1, by = 0.1)
+      for(a in seq(0, 1, by = 0.1)) {
+      er.fit = glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                    y = data.change.norm$ADHD, family = "binomial", alpha = a)
+      cv.fit = cv.glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                       y = data.change.norm$ADHD, family = "binomial", 
+                       alpha = a, type.measure = "class", nfolds = 5)
+      ms[a*10+1] = signif(cv.fit$cvm[which(cv.fit$lambda == cv.fit$lambda.min)], 2)
+      }
+      minimums = c(minimums, names(ms)[ms == min(ms)])
+    }
+    sort(table(as.numeric(minimums)))
+    #returns best alpha
+    ```
     ```{r}
     set.seed(100)
     #Fit Elastic Net regression and choose significant classifiers/ predictors
