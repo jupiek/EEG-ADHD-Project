@@ -1,7 +1,7 @@
 ---
-title: "EDA"
-author: "Julie Kim"
-date: "2/13/2019"
+title: "EEG Analysis"
+author: "EEG Team"
+date: "5/15/2019"
 output: html_document
 ---
 
@@ -154,7 +154,10 @@ plot(res.theta.norm$scores[,1],res.theta.norm$scores[,2],
                        x=as.matrix(data.change.norm[, -c(1,2)]), 
                        family="binomial", alpha=0.7, 
                        type.measure = "class", nfolds=5)
-    coef(cvfit)
+    coef_mat <- coef(cvfit,s="lambda.min")
+    coef_mat
+    coef_mat.1=coef_mat[order(abs(coef_mat),decreasing = TRUE)][1:6]
+    plot(abs(coef_mat.1),y=c(6:1),yaxt='n',ylab="",xlab="Coefficients",pch=19,col="orange",xlim=c(0.44,1.35))
     ```
     
     Tuning alpha: Run through alpha values from 0 to 1 in increments of 0.1. 
