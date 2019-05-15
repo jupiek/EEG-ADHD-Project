@@ -1,0 +1,454 @@
+---
+title: "EDA"
+author: "Julie Kim"
+date: "2/13/2019"
+output: html_document
+---
+
+    ```{r setup, include=FALSE}
+    knitr::opts_chunk$set(echo = TRUE)
+    ```
+    
+    ```{r, warning = FALSE, message = FALSE}
+    library(tidyverse)
+    library(ggplot2)
+    library(glmnet)
+    library(pander)
+    library(randomForest)
+    ```
+
+#### Read In Data
+
+    ```{r, message=F, warning=F}
+    data.norm <- read.csv('Normalized_Cleaned_Full_Dataset.csv', header=T)
+    data.change.norm <- read.csv('Normalized_Cleaned_Full_Dataset_ChangeScore.csv', header=T)
+    data.ACT.norm <- read.csv('Normalized_Cleaned_Activity_Dataset.csv', header=T)
+    data.CON.norm <- read.csv('Normalized_Cleaned_Connectivity_Dataset.csv', header=T)
+    data.ATT.norm <- read.csv('Normalized_Cleaned_AttentionLevel_Dataset.csv', header=T)
+    data.alpha.norm <- read.csv('Normalized_Cleaned_AlphaBand_Dataset.csv', header=T)
+    data.theta.norm <- read.csv('Normalized_Cleaned_ThetaBand_Dataset.csv', header=T)
+    ```
+    
+###Diagnostics
+
+    PCA
+
+```{r}
+res.norm = prcomp(data.norm[,-c(1:2)], scale=TRUE, center=TRUE)
+res.change.norm = princomp(data.change.norm[,-c(1:2)])
+res.ACT.norm = princomp(data.ACT.norm[,-c(1:2)])
+res.CON.norm = princomp(data.CON.norm[,-c(1:2)])
+res.ATT.norm = prcomp(data.ATT.norm[,-c(1:2)], scale=TRUE, center=TRUE)
+res.alpha.norm = princomp(data.alpha.norm[,-c(1:2)])
+res.theta.norm = princomp(data.theta.norm[,-c(1:2)])
+plot(res.norm$x[,1],res.norm$x[,2],
+     col=c("red","blue")[data.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.change.norm$scores[,1],res.change.norm$scores[,2],
+     col=c("red","blue")[data.change.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.ACT.norm$scores[,1],res.ACT.norm$scores[,2],
+     col=c("red","blue")[data.ACT.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.CON.norm$scores[,1],res.CON.norm$scores[,2],
+     col=c("red","blue")[data.CON.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.ATT.norm$x[,1],res.ATT.norm$x[,2],
+     col=c("red","blue")[data.ATT.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.alpha.norm$scores[,1],res.alpha.norm$scores[,2],
+     col=c("red","blue")[data.alpha.norm$ADHD+1], pch=16, asp=TRUE)
+plot(res.theta.norm$scores[,1],res.theta.norm$scores[,2],
+     col=c("red","blue")[data.theta.norm$ADHD+1], pch=16, asp=TRUE)
+```
+
+
+###Modeling
+    
+    Base Misclassification Rate - we use this is a comparison to the models. 
+    "If we guessed that all subjects did not have ADHD, how would we perform /
+    how often would we be incorrect?"
+    Every model under consideration should perform *at least* better than this 
+    base misclassification rate. If not, don't even bother!
+    ```{r}
+    br = function(data) {return(mean(data$ADHD == 0))}
+    base = br(data.norm)
+    br(data.change.norm)
+    br(data.ACT.norm)
+    br(data.CON.norm)
+    br(data.ATT.norm)
+    br(data.alpha.norm)
+    br(data.theta.norm)
+    ```
+    
+####Elastic Net (Lasso and Ridge Regression Combined)
+
+    Model fitting &  Cross Validation (number of folds should be specified)
+    ```{r}
+    #Cross Validation and Test Error - specify the number of folds
+    ###WANHE & JAE'S CODE HERE
+    
+    test_error <- function(data){
+      #leave out 10% of test data and get the misclassification rate
+      n <- nrow(data)
+      m <- round(.1*n)
+      test_er<- numeric(0)
+      train_er <- numeric(0)
+      for(i in 1:100){
+        test_indx <- sample(1:n, m, replace=FALSE)
+        test <- data[test_indx,]
+        train <- data[-test_indx,]
+        #cross validation
+        cvfit <- cv.glmnet(y=train$ADHD, x=as.matrix(train[, -c(1,2)]), 
+                           family="binomial", alpha=0.7, 
+                           type.measure = "class", nfolds=5)
+        test_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", 
+                                   newx = as.matrix(test[, -c(1,2)])) != test$ADHD)
+        train_er[i] <- mean(predict(cvfit, s="lambda.min", type="class", 
+                                    newx = as.matrix(train[, -c(1,2)])) != train$ADHD)
+      
+      }
+      return(list(train_er, test_er))
+    }
+    ```
+    ```{r, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    mis_rate_norm <- test_error(data.norm)
+    mis_rate_change_norm <- test_error(data.change.norm)
+    mis_rate_act_norm <- test_error(data.ACT.norm)
+    mis_rate_con_norm <- test_error(data.CON.norm)
+    mis_rate_att_norm <- test_error(data.ATT.norm)
+    mis_rate_alpha_norm <- test_error(data.alpha.norm)
+    mis_rate_theta_norm <- test_error(data.theta.norm)
+    ```
+    ```{r}
+    set.seed(100)
+    mean(mis_rate_norm[[1]])
+    mean(mis_rate_norm[[2]])
+    
+    mean(mis_rate_change_norm[[1]])
+    mean(mis_rate_change_norm[[2]])
+    mean(mis_rate_act_norm[[1]])
+    mean(mis_rate_act_norm[[2]])
+    mean(mis_rate_con_norm[[1]])
+    mean(mis_rate_con_norm[[2]])
+    mean(mis_rate_att_norm[[1]])
+    mean(mis_rate_att_norm[[2]])
+    
+    mean(mis_rate_alpha_norm[[1]])
+    mean(mis_rate_alpha_norm[[2]])
+    mean(mis_rate_theta_norm[[1]])
+    mean(mis_rate_theta_norm[[2]])
+    
+    plot(c(1:7), c(mean(mis_rate_norm[[1]]), mean(mis_rate_change_norm[[1]]), 
+                   mean(mis_rate_act_norm[[1]]), mean(mis_rate_con_norm[[1]]), 
+                   mean(mis_rate_att_norm[[1]]), mean(mis_rate_alpha_norm[[1]]), 
+                   mean(mis_rate_theta_norm[[1]])), ylim=c(0.1, 0.68), 
+         ylab="misclassification error", type="l", xlab="dataset", col="blue")
+    lines(c(1:7), c(mean(mis_rate_norm[[2]]), mean(mis_rate_change_norm[[2]]), 
+                    mean(mis_rate_act_norm[[2]]), mean(mis_rate_con_norm[[2]]), 
+                    mean(mis_rate_att_norm[[2]]), mean(mis_rate_alpha_norm[[2]]),
+                    mean(mis_rate_theta_norm[[2]])), col="red")
+    legend("topright",legend = c("test error", "train error"), 
+           col = c("red", "blue"), lty=1, cex=0.8)
+    ```
+    
+    Diagnosis for second full dataset
+    ```{r}
+    cvfit <- cv.glmnet(y=data.change.norm$ADHD, 
+                       x=as.matrix(data.change.norm[, -c(1,2)]), 
+                       family="binomial", alpha=0.7, 
+                       type.measure = "class", nfolds=5)
+    coef(cvfit)
+    ```
+    
+    Tuning alpha: Run through alpha values from 0 to 1 in increments of 0.1. 
+    Return a table of alpha values and the number of times out of 500 trials 
+    that it produces the minimum misclassification error. The alpha values that 
+    minimize the misclassification error for the `data.change.norm` dataset 
+    are 0.8 and 0.9. 
+    ```{r, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    minimums = vector()
+    for(i in 1:500) {
+      ms = vector(length = 11)
+      names(ms) = seq(0, 1, by = 0.1)
+      for(a in seq(0, 1, by = 0.1)) {
+      er.fit = glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                    y = data.change.norm$ADHD, family = "binomial", alpha = a)
+      cv.fit = cv.glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                       y = data.change.norm$ADHD, family = "binomial", 
+                       alpha = a, type.measure = "class", nfolds = 5)
+      ms[a*10+1] = signif(cv.fit$cvm[which(cv.fit$lambda == cv.fit$lambda.min)], 2)
+      }
+      minimums = c(minimums, names(ms)[ms == min(ms)])
+    }
+    sort(table(as.numeric(minimums)))
+    #returns best alpha
+    #0 0.1 0.3 0.2 0.5 0.4 0.6 0.7   1 0.8 0.9
+    #8  21  42  47  57  60  72  73  94  97  97
+    ```
+    
+    Analysis with alpha = 0.9
+    ```{r}
+    set.seed(100)
+    #Fit Elastic Net regression and choose significant classifiers/ predictors
+    #Cross Validation - specify the number of folds
+    er.fit = glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                    y = data.change.norm$ADHD, family = "binomial", alpha = 0.9)
+    
+    cv.fit = cv.glmnet(x = as.matrix(data.change.norm[,-c(1,2)]), 
+                       y = data.change.norm$ADHD, family = "binomial", 
+                       alpha = 0.9, type.measure = "class", nfolds = 5)
+    
+    #The optimal value of λ, by 5-fold cross-validation, is 0.075. 
+    #The MSE with this penalty is 0.34.
+    signif(cv.fit$lambda.min, 2)
+    signif(cv.fit$cvm[which(cv.fit$lambda == cv.fit$lambda.min)], 2)
+    
+    #Plot of lambdas with vertical line at minimizing lambda
+    plot.glmnet(er.fit, "lambda")
+    abline(v = log(cv.fit$lambda.min), col = "dimgray")
+    ```
+
+    Graphic Analysis
+    ```{r}
+    set.seed(100)
+    # Model Predictions vs. True Observations
+    er.pred = predict(cv.fit, newx = as.matrix(data.change.norm[,-c(1,2)]), 
+                      s = "lambda.min", type = "response")
+    plot(data.change.norm$ADHD, er.pred, 
+         main = "Model Predictions vs. True Observations",
+         xlab = "Diagnosis", ylab = "Predictions")
+    ```
+    
+    Bootstrapping
+    ```{r}
+    #Bootstrapping code revised based on code from ADAFAEPOV Chapter 6, Cosma Shalizi
+    resample = function(x) {sample(x, size = length(x), replace = TRUE)}
+        
+    resample.data.frame = function(data) {
+      sample.rows = resample(1:nrow(data))
+      return(data[sample.rows, ])
+    }
+    
+    rboot = function(statistic, simulator, B) {
+      tboots = replicate(B, statistic(simulator()))
+      if (is.null(dim(tboots))) {
+        tboots = array(tboots, dim = c(1, B))
+      }
+      return(tboots)
+    }
+    
+    bootstrap = function(tboots, summarizer, ...) {
+      summaries = apply(tboots, 1, summarizer, ...)
+      return(t(summaries))
+    }
+    
+    bootstrap.se = function(statistic, simulator, B) {
+      bootstrap(rboot(statistic, simulator, B), summarizer = sd)
+    }
+    
+    equitails = function(x, alpha) {
+      lower = quantile(x, alpha/2)
+      upper = quantile(x, 1 - alpha/2)
+      return(c(lower, upper))
+    }
+        
+    bootstrap.ci = function(statistic = NULL, simulator = NULL, tboots = NULL, 
+                            B = if (!is.null(tboots)) {ncol(tboots)}, 
+                            t.hat, level) {
+      
+      if (is.null(tboots)) {
+        stopifnot(!is.null(statistic))
+        stopifnot(!is.null(simulator))
+        stopifnot(!is.null(B))
+        tboots = rboot(statistic, simulator, B)
+      }
+      
+      alpha = 1 - level
+      intervals = bootstrap(tboots, summarizer = equitails, alpha = alpha)
+      upper = t.hat + (t.hat - intervals[, 1])
+      lower = t.hat + (t.hat - intervals[, 2])
+      CIs = cbind(lower = lower, upper = upper)
+      
+      return(CIs)
+      
+    }
+    ```
+    ```{r, include = FALSE, warning = FALSE, message = FALSE}
+    #Function mc.cis()
+    #Returns the a-level CI of an elastic-net model's misclassification rates
+    #Method of Prediction: Case Resampling
+    #Input
+      #Data frame on stocks with dates and stock prices or returns (df)
+      #Alpha level for confidence interval (a)
+    #Output
+      #Misclassification Error
+    
+    mc.cis = function(df, a = 0.95) {
+      
+      en.mdl = cv.glmnet(y = df$ADHD, x = as.matrix(df[,-c(1,2)]), 
+                         family = "binomial", alpha = 0.9, 
+                         type.measure = "class", nfolds = 5)
+      mc = mean(predict(en.mdl, s = "lambda.min", type = "class", 
+                        newx = as.matrix(df[,-c(1,2)])) != df$ADHD)
+        
+      resample = function() {resample.data.frame(df)}
+          
+      estimator = function(data) {
+        en.mdl = cv.glmnet(y = data$ADHD, x = as.matrix(data[,-c(1,2)]), 
+                           family = "binomial", alpha = 0.9, 
+                           type.measure = "class", nfolds = 5)
+        mc =  mean(predict(en.mdl, s = "lambda.min", type = "class", 
+                        newx = as.matrix(data[,-c(1,2)])) != data$ADHD)
+        return(mc)
+      }
+      
+      mc.cis = bootstrap.ci(statistic = estimator,
+                            simulator = resample, 
+                            B = 1000, t.hat = mc, 
+                            level = a)
+      
+      return(mc.cis)
+      
+    }
+    ```
+    ```{r, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    #Misclassification Rate - Confidence Intervals by Bootstrapping over 1000 iterations
+    #95%
+    mc.cis(data.change.norm)
+    #90%
+    mc.cis(data.change.norm, 0.9)
+    ```
+
+####Random Forest
+    Model fitting &  Cross Validation (number of folds should be specified)
+    ```{r}
+    set.seed(100)
+    #diagnosis for second full dataset
+    rf.mdl = randomForest(x = as.matrix(data.change.norm[,-c(1,2)]),
+                          y = data.change.norm$ADHD,
+                          ntree = 600)
+    plot(data.change.norm$ADHD, predict(rf.mdl), 
+         main = "Model Predictions vs. True Observations",
+         xlab = "Diagnosis", ylab = "Predictions")
+    
+    #Error vs. # of Trees
+    plot(rf.mdl)
+    
+    #roughly 45% misclassification
+    mean(ifelse(predict(rf.mdl) > 0.5, 1, 0) != data.change.norm$ADHD)
+    
+    pred = predict(rf.mdl)
+    CM = table(pred, data.change.norm$ADHD)
+    
+    #MSE = 0.2423
+    mean(rf.mdl$mse)
+    
+    #Variable Importance Plot
+    varImpPlot(rf.mdl, sort = T, n.var = 10,
+               main = "Top 10 - Variable Importance")
+    ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    mc.rf.pred = function(data, threshold = 0.5) {
+      mdl = randomForest(x = as.matrix(data[,-c(1,2)]),
+                         y = data$ADHD,
+                         ntree = 600)
+      pred = predict(mdl)
+      
+      #1. Return probability that class = 1
+      #2. Threshold said probabilities to output 0 or 1; default is 0.5
+      #ROC Curve can help define those threholds
+        #grid from 0 to 1, increments of 0.1
+        #try picking the right parameter the minimizes training error the most
+      mc = numeric(0)
+      for(i in seq(0, 1, by = 0.1)) {
+        mc[i*10+1] = mean(ifelse(pred > i, 1, 0) != data$ADHD)
+      }
+      plot(seq(0, 1, by = 0.1), mc, type = "l", 
+           main = deparse(substitute(data)), 
+           xlab = "Threshold", ylab = "Misclassification Rate")
+      return(mean(ifelse(pred > threshold, 1, 0) != data$ADHD))
+    }
+    
+    mc.rf.pred(data.norm, 0.7)
+    mc.rf.pred(data.change.norm, 0.5)
+    mc.rf.pred(data.ACT.norm, 0.7)
+    mc.rf.pred(data.CON.norm, 0.8)
+    mc.rf.pred(data.ATT.norm, 0.7)
+    mc.rf.pred(data.alpha.norm, 0.8)
+    mc.rf.pred(data.theta.norm, 0.6)
+    ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    mc.rf = function(data) {
+      n <- nrow(data)
+      m <- round(.1*n)
+      error = numeric(0)
+      
+      for(i in 1:100){
+        test_indx <- sample(1:n, m, replace=FALSE)
+        test <- data[test_indx,]
+        train <- data[-test_indx,]
+        #cross validation
+        fit = randomForest(x = as.matrix(train[,-c(1,2)]), y = train$ADHD, 
+                           ntree = 600)
+        pred = ifelse(predict(fit, newdata = as.matrix(test[,-c(1,2)])) > 0.5, 1, 0)
+        
+        error[i] <- mean(pred != test$ADHD)
+      }
+      return(mean(error))
+    }
+    ```
+    ```{r, message = FALSE, warning = FALSE, cache = TRUE, autodep = TRUE}
+    set.seed(100)
+    norm.mc.rf = mc.rf(data.norm)
+    change.norm.mc.rf = mc.rf(data.change.norm)
+    ACT.norm.mc.rf = mc.rf(data.ACT.norm)
+    CON.norm.mc.rf = mc.rf(data.CON.norm)
+    ATT.norm.mc.rf = mc.rf(data.ATT.norm)
+    alpha.norm.mc.rf = mc.rf(data.alpha.norm)
+    theta.norm.mc.rf = mc.rf(data.theta.norm)
+    
+    norm.mc.rf
+    change.norm.mc.rf
+    ACT.norm.mc.rf
+    CON.norm.mc.rf
+    ATT.norm.mc.rf
+    alpha.norm.mc.rf
+    theta.norm.mc.rf
+    ```
+    ```{r}
+    #We observed a 36.47% increase in classification accuracy
+    (base - 0.34)/base
+    base
+    ```
+
+
+    Notes:
+    + Sparse additive model is non-linear, and variables don't interact, generalization of linear regression with variable selection into the non-linear setting. Huge weakness: no way to design the functions such that the summation of the functions would give you a contour plot. Best for when data is sparse, i.e. p >> n.
+    + Linear model is linear, all variables interact
+    
+    Cassie's notes after first analysis
+    + Alpha and Theta analyses differently (which has highest accuracy rate)
+    + Cassie has only looked @ Alpha (6-9 Hz), Theta is (3-7 Hz) and just included data for the sake of it
+    + Attention Task instead of change scores (vs. baseline) - we should still keep change scores because there is a dependence between attention task and baseline
+    + Non-normalized data
+    + Visualization (topographic maps by James Long company): ERP Visualization
+    + Training phase, is there any test data?
+    + Q-Q Plot of residuals
+    
+####Logistic Regression
+
+    Model fitting
+    ```{r}
+    #Fit logistic model
+    data2 = data[,c(1,2,grep("ALPHA", colnames(data)))]
+    lg.mdl = glm(ADHD ~ . -ID-ADHD, data = data2, family = binomial)
+    plot(data$ADHD, predict(lg.mdl, type = "response"))
+    predict(lg.mdl, type = "response")
+    
+    table(predict(lg.mdl, type = "response"), data$ADHD)
+    
+    #data.ATT
+    #data.ATT.norm
+    #data.change
+    #data.change.norm
+    ```

@@ -1,0 +1,187 @@
+---
+title: "EEG Visualization"
+author: "Yi Wen"
+date: "May 14th 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(glmnet)
+library(pander)
+library(akima)
+library(scales)
+library(mgcv)
+library(gridExtra)
+library(png)
+library(grid)
+```
+
+###ERP Visualization: Creating topographical scalp maps
+#### Download Data from GitHub
+    ```{r}
+    topotest <- read_csv("https://raw.githubusercontent.com/craddm/ExploringERPs/master/topographyTest.csv") %>%
+    gather(electrode, amplitude, -Times)
+  topotest$amplitude <- as.double(topotest$amplitude)
+  electrodeLocs <- read_delim("https://raw.githubusercontent.com/craddm/ExploringERPs/master/biosemi70elecs.loc",
+                              "\t",
+                              escape_double = FALSE,
+                              col_names = c("chanNo","theta","radius","electrode"),
+                              trim_ws = TRUE)
+    ```
+
+#### Setup Brain and Nose Outline
+    ```{r}
+    ## Data setup 1: Set up Brain and Nose Outline
+    electrodeLocs$radianTheta <- pi/180*electrodeLocs$theta
+    
+    electrodeLocs <- electrodeLocs %>%
+      mutate(x = .$radius*sin(.$radianTheta),
+             y = .$radius*cos(.$radianTheta))
+    
+    ## Create head and nose
+    theme_topo <- function(base_size = 12)
+      {
+      theme_bw(base_size = base_size) %+replace%
+          theme(
+                rect             = element_blank(),
+                line             = element_blank(),
+                axis.text = element_blank(),
+                axis.title = element_blank()
+               )
+    }
+    
+    circleFun <- function(center = c(0,0),diameter = 3, npoints = 100) {
+      r = diameter / 2
+      tt <- seq(0,2*pi,length.out = npoints)
+      xx <- center[1] + r * cos(tt)
+      yy <- center[2] + r * sin(tt)
+      return(data.frame(x = xx, y = yy))
+    }
+    
+    headShape <- circleFun(c(0, 0), round(max(electrodeLocs$x)), npoints = 100) # 0
+    nose <- data.frame(x = c(-0.075,0,.075),y=c(.495,.575,.495))
+    ```
+
+##### EEG Activity visualized
+
+```{r, message=F, warning=F}
+# Read in Data. These Data are retrievable in DataPreprocessing.rmd
+df.act.base.rad <- read.csv('Base_Activity_EEG_withRadius.csv',header=T)
+df.act.att.rad <- read.csv('Activity_atAttention_withRadius.csv',header=T)
+df.change.rad <- read.csv('EEG_ChangeScore_withRadius.csv',header=T)
+```
+
+```{r}
+#Define Matlab-style Jet colourmap
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+
+# EEG Activity baseline for all
+ggplot(headShape,aes(x,y))+
+  geom_path(size = 1.5)+
+  geom_point(data = df.act.base.rad,aes(x,y,colour = amplitude),size = 10)+
+  scale_colour_gradientn(colours = jet.colors(10),guide = "colourbar",oob = squish)+ #note: oob = squish forces everything outside the colour limits to equal nearest colour boundary (i.e. below min colours = min colour)
+  geom_line(data = nose,aes(x, y, z = NULL),size = 1.5)+
+  theme_topo()+
+  coord_equal() +
+  labs(caption="EEG Baseline Activity Level for\nboth ADHD and controlled group\ntheta/alpha band combined")
+
+# EEG Activity attention task for all
+ggplot(headShape,aes(x,y))+
+  geom_path(size = 1.5)+
+  geom_point(data = df.act.att.rad,aes(x,y,colour = amplitude),size = 10)+
+  scale_colour_gradientn(colours = jet.colors(10),guide = "colourbar",oob = squish)+ #note: oob = squish forces everything outside the colour limits to equal nearest colour boundary (i.e. below min colours = min colour)
+  geom_line(data = nose,aes(x, y, z = NULL),size = 1.5)+
+  theme_topo()+
+  coord_equal() +
+  labs(caption="EEG Baseline Attention Task for\nboth ADHD and controlled group\ntheta/alpha band combined")
+
+# EEG Activity change score for all
+ggplot(headShape,aes(x,y))+
+  geom_path(size = 1.5)+
+  geom_point(data = df.change.rad,aes(x,y,colour = amplitude),size = 10)+
+  scale_colour_gradientn(colours = jet.colors(10),guide = "colourbar",oob = squish)+ #note: oob = squish forces everything outside the colour limits to equal nearest colour boundary (i.e. below min colours = min colour)
+  geom_line(data = nose,aes(x, y, z = NULL),size = 1.5)+
+  theme_topo()+
+  coord_equal() +
+  labs(caption="EEG Activity in Attention Task by change score\n from baseline for both ADHD and controlled group\ntheta/alpha band combined")
+```
+
+##### Convert Data Interpolation
+    ```{r}
+    #select a Timepoint
+    singleTimepoint <- filter(df.change.rad,Times == 301.7600)
+    singleTimepoint2 <- filter(allData, Times == 170.90)
+    
+    singleTimepoint
+    
+    gridRes <- 142 # Specify the number of points for each grid dimension i.e. the resolution/smoothness of the interpolation
+    
+    tmpTopo <- with(df.change.rad,
+                    interp(x = x, y = y, z = amplitude,
+                           xo = seq(min(x)*2,
+                                    max(x)*2,
+                                    length = gridRes),
+                           yo = seq(min(y)*2,
+                                    max(y)*2,
+                                    length = gridRes),
+                           linear = F,
+                           extrap = T,
+                           duplicate = "median")
+                    ) 
+    ```
+  
+    
+    ```{r}
+    interpTopo <- data.frame(x = tmpTopo$x, tmpTopo$z)
+
+    names(interpTopo)[1:length(tmpTopo$y)+1] <- tmpTopo$y
+    
+    interpTopo <- gather(interpTopo,
+                        key = y,
+                        value = amplitude,
+                        -x,
+                        convert = TRUE)
+    
+    interpTopo$incircle <- sqrt(interpTopo$x^2 + interpTopo$y^2) < 0.7 # mark grid elements that are outside of the plotting circle
+    
+    interpTopo <- interpTopo[interpTopo$incircle,] #remove the elements outside the circle
+    
+    maskRing <- circleFun(diameter = 1.42) #create a circle round the outside of the plotting area to mask the jagged edges of the interpolation
+    
+    akimaPlot <- ggplot(interpTopo,
+                    aes(x = x, y = y, fill = amplitude)
+                    ) +
+  geom_raster() +
+  stat_contour(aes(z = amplitude),
+               colour = "black",
+               binwidth = 0.05) +
+  theme_topo()+
+  scale_fill_gradientn(colours = jet.colors(10),
+                       limits = c(-2,2),
+                       guide = "colourbar",
+                       oob = squish) + 
+  geom_path(data = maskRing,
+            aes(x, y, z = NULL, fill =NULL),
+            colour = "white",
+            size = 6)+
+  geom_point(data = df.change.rad,
+             aes(x, y),
+             size = 2.5)+
+  geom_path(data = headShape,
+            aes(x, y, z = NULL, fill = NULL),
+            size = 1.5)+
+  geom_path(data = nose,
+            aes(x, y, z = NULL, fill = NULL),
+            size = 1.5)+
+  coord_equal()+
+      labs(caption="EEG Activity In attention tasks\nby Change Score from Baseline for both ADHD and Controlled groups\n(Interpoloated theta and alpha bands combined)")
+
+akimaPlot
+```

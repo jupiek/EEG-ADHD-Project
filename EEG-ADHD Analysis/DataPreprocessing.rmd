@@ -1,0 +1,620 @@
+---
+title: "Data Preprocessing"
+author: "Yi Wen"
+date: "May 14th 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(glmnet)
+library(pander)
+library(akima)
+library(scales)
+library(mgcv)
+library(gridExtra)
+library(png)
+library(grid)
+```
+
+####Part 1: EEG V. ADHD Analysis
+####Read in, Clean up
+
++ Group left/right (3x variable reduction)
++ Subtract baseline from activity (2x variable reduction)
++ Include both alpha/theta
+    
+    Read Data
+    ```{r}
+    #Read Data
+    df = read.csv("ADHD_EEG_Dataset.csv")
+    dim(df)
+    
+    #Subset of data to contain only the ID, response, and EEG readings
+    #i.e. exclude demographic data
+    df = df[,c(1,2,40:163)]
+    
+    #Omit all NA's
+    df = na.omit(df)
+    dim(df)
+    ```
+
+
+    
+    Group Data
+    ```{r}
+    #Group the brain regions based on their position (left/right)
+    #Method: Average reading
+    #Odd numbers are left, even numbers right
+    data = df[,1:2]
+    
+    #Baseline Activity - Alpha Band
+    data$BS_LF_ALPHA = NA
+    data$BS_RF_ALPHA = NA
+    data$BS_LC_ALPHA = df$BS_C3_ALPHA
+    data$BS_RC_ALPHA = df$BS_C4_ALPHA
+    data$BS_LT_ALPHA = df$BS_T7_ALPHA
+    data$BS_RT_ALPHA = df$BS_T8_ALPHA
+    data$BS_LP_ALPHA = NA
+    data$BS_RP_ALPHA = NA
+    data$BS_LO_ALPHA = df$BS_O1_ALPHA
+    data$BS_RO_ALPHA = df$BS_O2_ALPHA
+    
+    #Baseline Activity - Theta Band
+    data$BS_LF_THETA = NA
+    data$BS_RF_THETA = NA
+    data$BS_LC_THETA = df$BS_C3_THETA
+    data$BS_RC_THETA = df$BS_C4_THETA
+    data$BS_LT_THETA = df$BS_T7_THETA
+    data$BS_RT_THETA = df$BS_T8_THETA
+    data$BS_LP_THETA = NA
+    data$BS_RP_THETA = NA
+    data$BS_LO_THETA = df$BS_O1_THETA
+    data$BS_RO_THETA = df$BS_O2_THETA
+    
+    #Attention Task Activity - Alpha Band
+    data$AT_LF_ALPHA = NA
+    data$AT_RF_ALPHA = NA
+    data$AT_LC_ALPHA = df$AT_C3_ALPHA
+    data$AT_RC_ALPHA = df$AT_C4_ALPHA
+    data$AT_LT_ALPHA = df$AT_T7_ALPHA
+    data$AT_RT_ALPHA = df$AT_T8_ALPHA
+    data$AT_LP_ALPHA = NA
+    data$AT_RP_ALPHA = NA
+    data$AT_LO_ALPHA = df$AT_O1_ALPHA
+    data$AT_RO_ALPHA = df$AT_O2_ALPHA
+    
+    #Attention Task Activity - Theta Band
+    data$AT_LF_THETA = NA
+    data$AT_RF_THETA = NA
+    data$AT_LC_THETA = df$AT_C3_THETA
+    data$AT_RC_THETA = df$AT_C4_THETA
+    data$AT_LT_THETA = df$AT_T7_THETA
+    data$AT_RT_THETA = df$AT_T8_THETA
+    data$AT_LP_THETA = NA
+    data$AT_RP_THETA = NA
+    data$AT_LO_THETA = df$AT_O1_THETA
+    data$AT_RO_THETA = df$AT_O2_THETA
+    
+    for (i in 1:nrow(df)) {
+      #Baseline Activity - Alpha Band
+      data$BS_LF_ALPHA[i] = mean(df$BS_F1_ALPHA[i], df$BS_F3_ALPHA[i], df$BS_F7_ALPHA[i])
+      data$BS_RF_ALPHA[i] = mean(df$BS_F2_ALPHA[i], df$BS_F4_ALPHA[i], df$BS_F8_ALPHA[i])
+      data$BS_LP_ALPHA[i] = mean(df$BS_P7_ALPHA[i], df$BS_P3_ALPHA[i])
+      data$BS_RP_ALPHA[i] = mean(df$BS_P8_ALPHA[i], df$BS_P4_ALPHA[i])
+      #Baseline Activity - Theta Band
+      data$BS_LF_THETA[i] = mean(df$BS_F1_THETA[i], df$BS_F3_THETA[i], df$BS_F7_THETA[i])
+      data$BS_RF_THETA[i] = mean(df$BS_F2_THETA[i], df$BS_F4_THETA[i], df$BS_F8_THETA[i])
+      data$BS_LP_THETA[i] = mean(df$BS_P7_THETA[i], df$BS_P3_THETA[i])
+      data$BS_RP_THETA[i] = mean(df$BS_P8_THETA[i], df$BS_P4_THETA[i])
+      
+      #Attention Task Activity - Alpha Band
+      data$AT_LF_ALPHA[i] = mean(df$AT_F1_ALPHA[i], df$AT_F3_ALPHA[i], df$AT_F7_ALPHA[i])
+      data$AT_RF_ALPHA[i] = mean(df$AT_F2_ALPHA[i], df$AT_F4_ALPHA[i], df$AT_F8_ALPHA[i])
+      data$AT_LP_ALPHA[i] = mean(df$AT_P7_ALPHA[i], df$AT_P3_ALPHA[i])
+      data$AT_RP_ALPHA[i] = mean(df$AT_P8_ALPHA[i], df$AT_P4_ALPHA[i])
+      #Attention Task Activity - Theta Band
+      data$AT_LF_THETA[i] = mean(df$AT_F1_THETA[i], df$AT_F3_THETA[i], df$AT_F7_THETA[i])
+      data$AT_RF_THETA[i] = mean(df$AT_F2_THETA[i], df$AT_F4_THETA[i], df$AT_F8_THETA[i])
+      data$AT_LP_THETA[i] = mean(df$AT_P7_THETA[i], df$AT_P3_THETA[i])
+      data$AT_RP_THETA[i] = mean(df$AT_P8_THETA[i], df$AT_P4_THETA[i])
+    }
+    
+    #Baseline Connectivity - Alpha Band
+    data$BS_LFF_ALPHA = NA
+    data$BS_RFF_ALPHA = NA
+    data$BS_LFC_ALPHA = df$BS_F3C3_ALPHA
+    data$BS_RFC_ALPHA = df$BS_F4C4_ALPHA
+    data$BS_LFP_ALPHA = NA
+    data$BS_RFP_ALPHA = NA
+    data$BS_LFT_ALPHA = df$BS_F3T7_ALPHA            
+    data$BS_RFT_ALPHA = df$BS_F4T8_ALPHA
+    data$BS_LFO_ALPHA = df$BS_F3O1_ALPHA
+    data$BS_RFO_ALPHA = df$BS_F4O2_ALPHA
+    
+    #Baseline Connectivity - Theta Band
+    data$BS_LFF_THETA = NA
+    data$BS_RFF_THETA = NA
+    data$BS_LFC_THETA = df$BS_F3C3_THETA
+    data$BS_RFC_THETA = df$BS_F4C4_THETA
+    data$BS_LFP_THETA = NA
+    data$BS_RFP_THETA = NA
+    data$BS_LFT_THETA = df$BS_F3T7_THETA            
+    data$BS_RFT_THETA = df$BS_F4T8_THETA
+    data$BS_LFO_THETA = df$BS_F3O1_THETA
+    data$BS_RFO_THETA = df$BS_F4O2_THETA
+    
+    #Attention Task Connectivity - Alpha Band
+    data$AT_LFF_ALPHA = NA
+    data$AT_RFF_ALPHA = NA
+    data$AT_LFC_ALPHA = df$AT_F3C3_ALPHA
+    data$AT_RFC_ALPHA = df$AT_F4C4_ALPHA
+    data$AT_LFP_ALPHA = NA
+    data$AT_RFP_ALPHA = NA
+    data$AT_LFT_ALPHA = df$AT_F3T7_ALPHA            
+    data$AT_RFT_ALPHA = df$AT_F4T8_ALPHA
+    data$AT_LFO_ALPHA = df$AT_F3O1_ALPHA
+    data$AT_RFO_ALPHA = df$AT_F4O2_ALPHA
+    
+    #Attention Task Connectivity - Theta Band
+    data$AT_LFF_THETA = NA
+    data$AT_RFF_THETA = NA
+    data$AT_LFC_THETA = df$AT_F3C3_THETA
+    data$AT_RFC_THETA = df$AT_F4C4_THETA
+    data$AT_LFP_THETA = NA
+    data$AT_RFP_THETA = NA
+    data$AT_LFT_THETA = df$AT_F3T7_THETA            
+    data$AT_RFT_THETA = df$AT_F4T8_THETA
+    data$AT_LFO_THETA = df$AT_F3O1_THETA
+    data$AT_RFO_THETA = df$AT_F4O2_THETA
+    
+    for (i in 1:nrow(df)) {
+      #Baseline Connectivity - Alpha Band
+      data$BS_LFF_ALPHA[i] = mean(df$BS_F1F3_ALPHA[i], df$BS_F3F7_ALPHA[i])
+      data$BS_RFF_ALPHA[i] = mean(df$BS_F2F4_ALPHA[i], df$BS_F4F8_ALPHA[i])
+      data$BS_LFP_ALPHA[i] = mean(df$BS_F3P3_ALPHA[i], df$BS_F3P7_ALPHA[i])
+      data$BS_RFP_ALPHA[i] = mean(df$BS_F4P8_ALPHA[i], df$BS_F4P4_ALPHA[i])
+      #Baseline Connectivity - Theta Band
+      data$BS_LFF_THETA[i] = mean(df$BS_F1F3_THETA[i], df$BS_F3F7_THETA[i])
+      data$BS_RFF_THETA[i] = mean(df$BS_F2F4_THETA[i], df$BS_F4F8_THETA[i])
+      data$BS_LFP_THETA[i] = mean(df$BS_F3P3_THETA[i], df$BS_F3P7_THETA[i])
+      data$BS_RFP_THETA[i] = mean(df$BS_F4P8_THETA[i], df$BS_F4P4_THETA[i])
+      
+      #Attention Task Connectivity - Alpha Band
+      data$AT_LFF_ALPHA[i] = mean(df$AT_F1F3_ALPHA[i], df$AT_F3F7_ALPHA[i])
+      data$AT_RFF_ALPHA[i] = mean(df$AT_F2F4_ALPHA[i], df$AT_F4F8_ALPHA[i])
+      data$AT_LFP_ALPHA[i] = mean(df$AT_F3P3_ALPHA[i], df$AT_F3P7_ALPHA[i])
+      data$AT_RFP_ALPHA[i] = mean(df$AT_F4P8_ALPHA[i], df$AT_F4P4_ALPHA[i])
+      #Attention Task Connectivity - Theta Band
+      data$AT_LFF_THETA[i] = mean(df$AT_F1F3_THETA[i], df$AT_F3F7_THETA[i])
+      data$AT_RFF_THETA[i] = mean(df$AT_F2F4_THETA[i], df$AT_F4F8_THETA[i])
+      data$AT_LFP_THETA[i] = mean(df$AT_F3P3_THETA[i], df$AT_F3P7_THETA[i])
+      data$AT_RFP_THETA[i] = mean(df$AT_F4P8_THETA[i], df$AT_F4P4_THETA[i])
+    }
+    
+    data$BS_time = df$BS_time
+    data$BS_dft = df$BS_dft
+    data$AT_time = df$AT_time
+    data$AT_dft = df$AT_dft
+    ```
+    
+    Subtract Baseline from Activity
+    + The dataset with only attention level is saved as "data.ATT"
+    + The change of the activity/connectivity from baseline are all saved to a new data frame calld "data.change"
+    ```{r}
+        # Enforce consecutive row name reference
+    rownames(data) <- NULL
+    # Subtract baseline activity/ connectivity signal from activity
+    data.change <- mutate(data,
+                    # EEG Activity Subtraction
+                    LF_ALPHA = AT_LF_ALPHA - BS_LF_ALPHA,
+                    RF_ALPHA = AT_RF_ALPHA - BS_RF_ALPHA,
+                    LC_ALPHA = AT_LC_ALPHA - BS_LC_ALPHA,
+                    RC_ALPHA = AT_RC_ALPHA - BS_RC_ALPHA,
+                    LT_ALPHA = AT_LT_ALPHA - BS_LT_ALPHA,
+                    RT_ALPHA = AT_RT_ALPHA - BS_RT_ALPHA,
+                    LP_ALPHA = AT_LP_ALPHA - BS_LP_ALPHA,
+                    RP_ALPHA = AT_RP_ALPHA - BS_RP_ALPHA,
+                    LO_ALPHA = AT_LO_ALPHA - BS_LO_ALPHA,
+                    RO_ALPHA = AT_RO_ALPHA - BS_RO_ALPHA,
+                    LF_THETA = AT_LF_THETA - BS_LF_THETA,
+                    RF_THETA = AT_RF_THETA - BS_RF_THETA,
+                    LC_THETA = AT_LC_THETA - BS_LC_THETA,
+                    RC_THETA = AT_RC_THETA - BS_RC_THETA,
+                    LT_THETA = AT_LT_THETA - BS_LT_THETA,
+                    RT_THETA = AT_RT_THETA - BS_RT_THETA,
+                    LP_THETA = AT_LP_THETA - BS_LP_THETA,
+                    RP_THETA = AT_RP_THETA - BS_RP_THETA,
+                    LO_THETA = AT_LO_THETA - BS_LO_THETA,
+                    RO_THETA = AT_RO_THETA - BS_RO_THETA,
+                    # EEG Connectivity subtraction
+                    LFF_ALPHA = AT_LFF_ALPHA - BS_LFF_ALPHA,
+                    RFF_ALPHA = AT_RFF_ALPHA - BS_RFF_ALPHA,
+                    LFC_ALPHA = AT_LFC_ALPHA - BS_LFC_ALPHA,
+                    RFC_ALPHA = AT_RFC_ALPHA - BS_RFC_ALPHA,
+                    LFP_ALPHA = AT_LFP_ALPHA - BS_LFP_ALPHA,
+                    RFP_ALPHA = AT_RFP_ALPHA - BS_RFP_ALPHA,
+                    LFT_ALPHA = AT_LFT_ALPHA - BS_LFT_ALPHA,
+                    RFT_ALPHA = AT_RFT_ALPHA - BS_RFT_ALPHA,
+                    LFO_ALPHA = AT_LFO_ALPHA - BS_LFO_ALPHA,
+                    RFO_ALPHA = AT_RFO_ALPHA - BS_RFO_ALPHA,
+                    LFF_THETA = AT_LFF_THETA - BS_LFF_THETA,
+                    RFF_THETA = AT_RFF_THETA - BS_RFF_THETA,
+                    LFC_THETA = AT_LFC_THETA - BS_LFC_THETA,
+                    RFC_THETA = AT_RFC_THETA - BS_RFC_THETA,
+                    LFP_THETA = AT_LFP_THETA - BS_LFP_THETA,
+                    RFP_THETA = AT_RFP_THETA - BS_RFP_THETA,
+                    LFT_THETA = AT_LFT_THETA - BS_LFT_THETA,
+                    RFT_THETA = AT_RFT_THETA - BS_RFT_THETA,
+                    LFO_THETA = AT_LFO_THETA - BS_LFO_THETA,
+                    RFO_THETA = AT_RFO_THETA - BS_RFO_THETA,
+                    time = AT_time - BS_time,
+                    dft = AT_dft - BS_dft
+    )
+    
+    # Groupped left/right brain regions
+    data
+    dim(data)
+    
+    # Change scores by subtracting baseline values from attention task values
+    data.change = data.change[,-c(3:86)]
+    data.change
+    dim(data.change)
+    
+    # Just EEG Activity
+    data.ACT = data[,-c(43:86)]
+    data.ACT
+    dim(data.ACT)
+    
+    # Just EEG Connectivity
+    data.CON = data[,c(1:2,43:82)]
+    data.CON
+    dim(data.CON)
+    
+    # Just EEG Connectivity + Activity without baseline
+    data.ATT = data[,c(1,2,23:42,63:82)]
+    data.ATT
+    dim(data.ATT)
+    
+    # Just data from the alpha band
+    data.alpha = data[,c(1:12,23:32,43:52,63:72)]
+    data.alpha
+    dim(data.alpha)
+    
+    # Just data from the theta band
+    data.theta = data[,-c(3:12,23:32,43:52,63:72,83:86)]
+    data.theta
+    dim(data.theta)
+    ```
+
+    Scale Data
+    + Normalized original dataset is saved as "data.ATT.norm"
+    + Normalized change score dataset is saved as "data.change.norm"
+    ```{r, message=F, warning=F}
+    #Scale data to be centered at 0, with standard deviation 1
+    
+    # Normalize the original dataset "data"
+    data.norm = as.data.frame(cbind(ID = data[,1], ADHD = data[,2], scale(data[,-c(1,2)])))
+    data.norm = mutate(data.norm, ID = data[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    #Normalize the change score dataset "data.change"
+    data.change.norm = as.data.frame(cbind(ID = data.change[,1], ADHD = data.change[,2], scale(data.change[,-c(1,2)])))
+    data.change.norm = mutate(data.change.norm, ID = data.change[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.change.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.change.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    # Normalize just EEG Activity
+    data.ACT.norm = as.data.frame(cbind(ID = data.ACT[,1], ADHD = data.ACT[,2], scale(data.ACT[,-c(1,2)])))
+    data.ACT.norm = mutate(data.ACT.norm, ID = data.ACT[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ACT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ACT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just EEG Connectivity
+    data.CON.norm = as.data.frame(cbind(ID = data.CON[,1], ADHD = data.CON[,2], scale(data.CON[,-c(1,2)])))
+    data.CON.norm = mutate(data.CON.norm, ID = data.CON[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.CON.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.CON.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Normalize just EEG Connectivity + Activity without baseline
+    data.ATT.norm = as.data.frame(cbind(ID = data.ATT[,1], ADHD = data.ATT[,2], scale(data.ATT[,-c(1,2)])))
+    data.ATT.norm = mutate(data.norm, ID = data[,1])
+    
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.ATT.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.ATT.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the alpha band
+    data.alpha.norm = as.data.frame(cbind(ID = data.alpha[,1], ADHD = data.alpha[,2], scale(data.alpha[,-c(1,2)])))
+    data.alpha.norm = mutate(data.alpha.norm, ID = data.alpha[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.alpha.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.alpha.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Just data from the theta band
+    data.theta.norm = as.data.frame(cbind(ID = data.theta[,1], ADHD = data.theta[,2], scale(data.theta[,-c(1,2)])))
+    data.theta.norm = mutate(data.theta.norm, ID = data.theta[,1])
+    #Check that dataset is normalized
+    checkMat = round(colMeans(data.theta.norm[,-c(1,2)]),10)==0
+    ifelse(length(checkMat[checkMat==TRUE])/length(checkMat)==1,
+          print("Data to be centered at 0 success"),
+          print("Data to be centered at 0 fail"))
+    checkMat2 = round(apply(data.theta.norm[,-c(1,2)], 2, sd),10)==1
+    ifelse(length(checkMat2[checkMat2==TRUE])/length(checkMat2)==1,
+          print("Data to have standard deviation of 1 success"),
+          print("Data to have standard deviation of 1 fail"))
+    
+    # Print Data Set of interest and its dimension
+    data.norm
+    data.change.norm
+    data.ACT.norm
+    data.CON.norm
+    data.ATT.norm
+    data.alpha.norm
+    data.theta.norm
+    dim(data.norm)
+    dim(data.change.norm)
+    dim(data.ACT.norm)
+    dim(data.CON.norm)
+    dim(data.ATT.norm)
+    dim(data.alpha.norm)
+    dim(data.theta.norm)
+    ```
+    
+####Part 2: EEG visualization
+
+#### Prepare dataset for EEG activity 
+##### 1. seperated by baselin and attention only
+##### 2. seperated by activity attention task: theta/ alpha bands
+    ```{r, message=F, warning=F}
+    # Dataset that we used: 
+    # Original - not suitable for plots because it's a mix of adhd/ controlled, alpha/ theta, connectivity/ activity and etc.
+    # change score - suitable for plots after seperation
+    # activity - suitable for plots after seperation
+    # connectivity - not suitable for heat map. We could look at neural plots. To be continued
+    # attention task - to be studied
+    # alpha, theta - plotted in change score and connectivity
+    
+    # Original Data: Base Line v. Attention (mixed alpha/theta, ADHD/ controlled)
+    df.att <- df[,c(1:66)]
+    ## Extract Activity Data: baseline v. active
+    df.act.base <- df.att[,c(1:34)]
+    df.act.att <- df.att[,c(1:2,35:66)]
+    df.act.base
+    df.act.att
+    ## We can plot a graph for the two sets above
+    
+    ## seperate by alpha and theta
+    df.act.att.alpha <- df.act.att[,c(1:18)]
+    df.act.base.alpha <- df.act.base[,c(1:18)]
+    df.act.att.theta <- df.act.att[,c(1:2, 19:34)]
+    df.act.base.theta <- df.act.base[,c(1:2, 19:34)]
+    df.act.base.theta
+    df.act.att.theta
+    df.act.base.alpha
+    df.act.att.alpha
+    ## We can plot 2 graphs for the 2 attention sets above
+    ## seperate by controlled and adhd
+    ```
+
+#### Prepare datasets for EEG Activity: change score alpha/ theta bands
+    ```{r, message=F, warning=F}
+    # Change Score
+    df.change = cbind(df.act.att[,1:2], df.act.att[,3:ncol(df.act.att)] - df.act.base[,3:ncol(df.act.att)])
+    ## Seperate by alpha and theta
+    df.change.alpha <- df.act.att[,c(1:18)]
+    df.change.theta <- df.act.att[,c(1:2, 19:34)]
+    df.change.alpha
+    df.change.theta
+    ## We can plot 2 graphs for the 2 change score sets above (alpha v. theta)
+    
+    ## Seprate by controled and adhd
+    ```
+
+#### Get and restructure The Radius Dataframe tailored to this project
+    ```{r}
+    # datasetup 2: Get Radius mapped to Brain Region (sources from topotest)
+    allData <- topotest %>% left_join(electrodeLocs, by = "electrode")
+    allData
+    radToBrain <- allData[,c(2,4,5,6,7,8,9)]
+    radToBrain <- radToBrain[seq(1,nrow(radToBrain),by = 819),]
+    radToBrain
+    
+    ## Restructure radToBrain to match the order of Cassie's dataset
+    rad <- radToBrain[c(4,4,5,5,7,7,13,13,15,15,23,23,21,21,27,27),]
+    rad$electrode <- c("F1","F2","F3","F4","F7","F8","C3","C4","T7","T8","P7","P8","P3","P4","O1","O2")
+    
+    # Assign positive radius for right brain regions and assign negative radius for the left
+    for (i in 1:nrow(rad)){
+      if(i-2*i%/%2 == 0){
+        rad$x[i] = abs(rad$x[i])
+      }
+    }
+    
+    rad
+    ```
+
+#### Restructure the relevant dataset cleaned above and assign radius
+##### Restructure for activity base
+    ```{r, message=F, warning=F}
+    # Initialize empty vectors to store electrodes, channel number, theta, radius, radians and x and y coordinates of each electrod readings
+    nrad = nrow(rad)
+    ndat = nrow(df.act.base)
+    electrode.vec = c()
+    chanNo.vec = c()
+    theta.vec = c()
+    radius.vec = c()
+    radianTheta.vec = c()
+    x.vec = c()
+    y.vec = c()
+    amplitude.vec = c()
+    # Initialize an empty restructured data to assign radius to Cassie's node readings
+    for (i in 1:(2*nrad)){
+      index = i - 16 * i %/%16
+      if (index == 0){index = 16}
+      electrode.vec = c(electrode.vec,rep(rad$electrode[index], ndat))
+      chanNo.vec = c(chanNo.vec, rep(rad$chanNo[index], ndat))
+      theta.vec = c(theta.vec,rep(rad$theta[index], ndat))
+      radius.vec = c(radius.vec,rep(rad$radius[index],ndat))
+      radianTheta.vec = c(radianTheta.vec,rep(rad$radianTheta[index],ndat))
+      x.vec = c(x.vec,rep(rad$x[index],ndat))
+      y.vec = c(y.vec,rep(rad$y[index],ndat))
+      amplitude.vec = c(amplitude.vec,df.act.base[,2+index])
+    }
+        
+    # Group Cassie's data with the radius table, by reference of the row
+    # The radius table rad is ordered in the order of Cassie's electrode reading orders
+    # e.g. first row of radius table reads F1 and first column of Cassie's data records F1 readings and so on
+    df.act.base.rad <- data.frame(electrode = electrode.vec,
+                                    chanNo = chanNo.vec,
+                                    theta = theta.vec,
+                                    radius = radius.vec,
+                                    radianTheta = radianTheta.vec,
+                                    x = x.vec,
+                                    y = y.vec,
+                                    amplitude = amplitude.vec)
+    
+    # Random sample Times to Attach
+    # Time act as an ID to recognize subjects
+    # The same time value indicates that the electrod reading comes from the same subject
+    set.seed(490)
+    Times <- allData$Times[1:819]
+    Times.sample <- sample(Times, 142)
+    Times.sample <- rep(Times.sample, 16)
+    
+    df.act.base.rad <- mutate(df.act.base.rad, Times = Times.sample)
+    df.act.base.rad
+#    write.csv(df.act.base.rad, 'Base_Activity_EEG_withRadius.csv')
+    ```
+
+##### Restructure for activity attention level
+    ```{r, message=F, warning=F}
+    # The same process again as in baseline activity level
+    nrad = nrow(rad)
+    ndat = nrow(df.act.att)
+    electrode.vec = c()
+    chanNo.vec = c()
+    theta.vec = c()
+    radius.vec = c()
+    radianTheta.vec = c()
+    x.vec = c()
+    y.vec = c()
+    amplitude.vec = c()
+    # Initialize restructured dataset
+    for (i in 1:(2*nrad)){
+      index = i - 16 * i %/%16
+      if (index == 0){index = 16}
+      electrode.vec = c(electrode.vec,rep(rad$electrode[index], ndat))
+      chanNo.vec = c(chanNo.vec, rep(rad$chanNo[index], ndat))
+      theta.vec = c(theta.vec,rep(rad$theta[index], ndat))
+      radius.vec = c(radius.vec,rep(rad$radius[index],ndat))
+      radianTheta.vec = c(radianTheta.vec,rep(rad$radianTheta[index],ndat))
+      x.vec = c(x.vec,rep(rad$x[index],ndat))
+      y.vec = c(y.vec,rep(rad$y[index],ndat))
+      amplitude.vec = c(amplitude.vec,df.act.att[,2+index])
+    }
+    
+    df.act.att.rad <- data.frame(electrode = electrode.vec,
+                                    chanNo = chanNo.vec,
+                                    theta = theta.vec,
+                                    radius = radius.vec,
+                                    radianTheta = radianTheta.vec,
+                                    x = x.vec,
+                                    y = y.vec,
+                                    amplitude = amplitude.vec)
+    
+    # Sample Times to Attach
+    df.act.att.rad <- mutate(df.act.att.rad, Times = Times.sample)
+    df.act.att.rad
+    
+#    write.csv(df.act.att.rad, 'Activity_atAttention_withRadius.csv')
+    ```
+
+##### Restructure for change score
+    ```{r, message=F, warning=F}
+    # The same process again as in baseline activity level
+    nrad = nrow(rad)
+    ndat = nrow(df.change)
+    electrode.vec = c()
+    chanNo.vec = c()
+    theta.vec = c()
+    radius.vec = c()
+    radianTheta.vec = c()
+    x.vec = c()
+    y.vec = c()
+    amplitude.vec = c()
+    # Initialize restructured dataset
+    for (i in 1:(2*nrad)){
+      index = i - 16 * i %/%16
+      if (index == 0){index = 16}
+      electrode.vec = c(electrode.vec,rep(rad$electrode[index], ndat))
+      chanNo.vec = c(chanNo.vec, rep(rad$chanNo[index], ndat))
+      theta.vec = c(theta.vec,rep(rad$theta[index], ndat))
+      radius.vec = c(radius.vec,rep(rad$radius[index],ndat))
+      radianTheta.vec = c(radianTheta.vec,rep(rad$radianTheta[index],ndat))
+      x.vec = c(x.vec,rep(rad$x[index],ndat))
+      y.vec = c(y.vec,rep(rad$y[index],ndat))
+      amplitude.vec = c(amplitude.vec,df.change[,2+index])
+    }
+    
+    df.change.rad <- data.frame(electrode = electrode.vec,
+                                    chanNo = chanNo.vec,
+                                    theta = theta.vec,
+                                    radius = radius.vec,
+                                    radianTheta = radianTheta.vec,
+                                    x = x.vec,
+                                    y = y.vec,
+                                    amplitude = amplitude.vec)
+    
+    # Sample Times to Attach
+    df.change.rad <- mutate(df.change.rad, Times = Times.sample)
+    df.change.rad
+    dim(df.change.rad)
+    
+#    write.csv(df.change.rad, 'EEG_ChangeScore_withRadius.csv')
+    ```

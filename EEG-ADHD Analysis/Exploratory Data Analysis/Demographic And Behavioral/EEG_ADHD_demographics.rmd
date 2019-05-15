@@ -1,0 +1,510 @@
+# EEG/ADHD Study Exploratory Data Analysis
+
+## Summary
+* Demographic variables distribute similarly for both ADHD and controlled groups, indicating that the matched pairs are similar in terms of demographic background (excep for Father's education, of which ADHD group skew more toward the lower education end)
+* Behavioral variables that distribute differently for ADHD and controlled groups are:
+  1. Orienting Level
+  2. Enjoyment toward low stimulus environment
+  3. Approach Level
+  4. Attention task finishing time at 5-month visit
+  5. Attention task accuracy rate at 48-month visit
+  6. Attention problem parent rating at 48-month
+  7. Attention problem parent rating at 9-year-old
+  
+** This means that we can differentiate ADHD kids from healthy kids at an early age from their behaviors**
+
+## Import library and load Data
+```{r, message=F, warning=F}
+# Import library
+library(tidyverse)
+library(gridExtra)
+
+# EDA for categorical analysis
+```
+```{r,message=F, warning=F}
+# Read Data
+df = read.csv("ADHD_EEG_Dataset.csv")
+df <- mutate(df, 
+             ADHD = as.factor(ADHD)#,
+             #Sex = as.factor(Sex),
+             #Race = as.factor(Race),
+             #Ethnicity = as.factor(Ethnicity),
+             #MaternalEducation = as.factor(MaternalEducation),
+             #PaternalEducation = as.factor(PaternalEducation),
+             #MomEthnicity = as.factor(MomEthnicity),
+             #DadEthnicity = as.factor(DadEthnicity),
+             #MomRace = as.factor(MomRace),
+             #DadRace = as.factor(DadRace)
+             )
+# 39 demographic variables
+```
+
+## Univariate Data Analysis
+### Mean, Median, Q1, Q3, Min, Max and Standard deviation
+```{r, message=F, warning=F}
+summary(df)
+apply(df, 2, sd)
+```
+### Demographic variables univariate Histograms
+```{r, message=F, warning=F}
+# Univariate Analysis EDA for Demographic Variables
+
+# Confusion matrix for qualitative variable
+# ADHD CONTROLED 2 by 2 table
+
+# ADHD histogram
+p1 <- ggplot(df, aes(x = ADHD))+
+  geom_bar()
+# Yea of course, it is a 41 Controled v.s. 41 ADHD dataset.
+
+p2 <- ggplot(df, aes(x = AT_5months))+
+  geom_bar()
+# 5 rows are dropped due to missing variable
+
+# Days in age at 5 month histogram
+p3 <- ggplot(df, aes(x = Age_5months))+
+  geom_bar()
+# Days in age at 5 month visit?? What does that mean?
+
+p4 <- ggplot(df, aes(x = MaternalEducation))+
+  geom_bar()
+
+p5 <- ggplot(df, aes(x = PaternalEducation))+
+  geom_bar()
+
+p6 <- ggplot(df, aes(x = Sex))+
+  geom_bar()
+
+p7 <- ggplot(df, aes(x = Race))+
+  geom_bar()
+
+p8 <- ggplot(df, aes(x = Ethnicity))+
+  geom_bar()
+
+p9 <- ggplot(df, aes(x = Birthweight))+
+  geom_bar()
+
+p10 <- ggplot(df, aes(x = MomEthnicity))+
+  geom_bar()
+
+p11 <- ggplot(df, aes(x = DadEthnicity))+
+  geom_bar()
+
+p12 <- ggplot(df, aes(x = DadRace))+
+  geom_bar()
+
+p13 <- ggplot(df, aes(x = MomRace))+
+  geom_bar()
+
+p14 <- ggplot(df, aes(x = MomAge))+
+  geom_bar()
+
+p15 <- ggplot(df, aes(x = DadAge))+
+  geom_bar()
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, ncol = 3)
+```
+
+## Behavioral Variables Univariate Histograms
+```{r, message=F, warning=F}
+# IBQ histogram
+p1 <- ggplot(df, aes(x = IBQ_actlevel_5))+
+  geom_histogram(binwidth = 0.15)
+
+p2 <- ggplot(df, aes(x = IBQ_distress_5))+
+  geom_histogram(binwidth = 0.15)
+
+p3 <- ggplot(df, aes(x = IBQ_fear_5))+
+  geom_histogram(binwidth = 0.15)
+
+p4 <- ggplot(df, aes(x = IBQ_orient_5))+
+  geom_histogram(binwidth = 0.15)
+
+p5 <- ggplot(df, aes(x = IBQ_smiling_5))+
+  geom_histogram(binwidth = 0.15)
+
+p6 <- ggplot(df, aes(x = IBQ_highplsre_5))+
+  geom_histogram(binwidth = 0.15)
+
+p7 <- ggplot(df, aes(x = IBQ_lowplsre_5))+
+  geom_histogram(binwidth = 0.15)
+
+p8 <- ggplot(df, aes(x = IBQ_soothe_5))+
+  geom_histogram(binwidth = 0.15)
+
+p9 <- ggplot(df, aes(x = IBQ_fallreac_5))+
+  geom_histogram(binwidth = 0.15)
+
+p10 <- ggplot(df, aes(x = IBQ_fallreac_reverse_5))+
+  geom_histogram(binwidth = 0.15)
+
+p11 <- ggplot(df, aes(x = IBQ_cuddli_5))+
+  geom_histogram(binwidth = 0.15)
+
+p12 <- ggplot(df, aes(x = IBQ_percptsens_5))+
+  geom_histogram(binwidth = 0.15)
+
+p13 <- ggplot(df, aes(x = IBQ_sadness_5))+
+  geom_histogram(binwidth = 0.15)
+
+p14 <- ggplot(df, aes(x = IBQ_approach_5))+
+  geom_histogram(binwidth = 0.15)
+
+p15 <- ggplot(df, aes(x = IBQ_vocreact_5))+
+  geom_histogram(binwidth = 0.15)
+
+p16 <- ggplot(df, aes(x = IBQ_Surgency_Extraversion_5))+
+  geom_histogram(binwidth = 0.15)
+
+p17 <- ggplot(df, aes(x = IBQ_Negative_Affectivity_5))+
+  geom_histogram(binwidth = 0.15)
+
+p18 <- ggplot(df, aes(x = IBQ_Orienting_Regulation_5))+
+  geom_histogram(binwidth = 0.15)
+
+p19 <- ggplot(df, aes(x = AT_48months))+
+  geom_bar()
+
+p20 <- ggplot(df, aes(x = CBCL_DSM_48months))+
+  geom_histogram(binwidth = 0.15)
+
+p21 <- ggplot(df, aes(x = CBCL_DSM_9yearsold))+
+  geom_histogram(binwidth = 0.15)
+
+p22 <- ggplot(df, aes(x = ATYPICAL_Status))+
+  geom_histogram(binwidth = 0.15)
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, ncol = 3)
+grid.arrange(p11, p12, p13, p14, p15, p16, p17, p18, p19,
+             p20, ncol = 3)
+grid.arrange(p21, p22, ncol=2)
+```
+
+### Boxplot for demographic and behavioral variables control v. ADHD
+#### Variables that seem to have different distribution between ADHD and controlled groups (seen from the boxplots) are also drawn with a density curve
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = AT_5months)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Attention Task Finish Time at 5-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "5-month Attention Task Finish Time\ndifference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = AT_5months)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Attention Task Finish Time at 5-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "5-month Attention Task Finish Time\ndistribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+```{r, message=F, warning=F}
+
+ggplot(df, aes(x = ADHD, y = Age_5months)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Sex)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Race)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = Ethnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r}
+ggplot(df, aes(x = ADHD, y = MaternalEducation)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = PaternalEducation)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = MaternalEducation)) +
+  geom_density(aes(fill = ADHD), alpha = 0.5) +
+  labs(x = "Maternal Education",
+       y = "Frequency",
+       fill = "0 = Did not complete highschool\n1 = High school\n2 = Technical School \n3 = College\n4  = Graduate School",
+       title = "Maternal Education\ndistribution between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = PaternalEducation)) +
+  geom_density(aes(fill = ADHD), alpha = 0.5) +
+  labs(x = "Paternal Education",
+       y = "Frequency",
+       fill = "0 = Did not complete highschool\n1 = High school\n2 = Technical School \n3 = College\n4  = Graduate School",
+       title = "Paternal Education\ndistribution between\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+ggplot(df, aes(x = ADHD, y = Birthweight)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MomEthnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = DadEthnicity)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MomRace)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = DadRace)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = MomAge)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = DadAge)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+# Controled vs. ADHD - IBQ measurements
+
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_actlevel_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Activity Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Activity Level difference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_actlevel_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Activity Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Activity Level distribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+
+ggplot(df, aes(x = ADHD, y = IBQ_distress_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fear_5)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_orient_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "orienting Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Orienting level difference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_actlevel_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Orienting Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Orienting Level distribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = IBQ_smiling_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_highplsre_5)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_lowplsre_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Enjoyment toward low stimulus Intensity",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Enjoyment toward low\nstimulus Intensity\ndifference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_lowplsre_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Enjoyment toward low stimulus Intensity",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Enjoyment toward low\nstimulus Intensity\ndistribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = IBQ_soothe_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fallreac_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_fallreac_reverse_5)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_cuddli_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Cuddling Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Cuddling Leveldifference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_cuddli_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Cuddling Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Cuddling Level distribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = IBQ_percptsens_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_sadness_5)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_approach_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Approach Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Approach Level difference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_approach_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Approach Level",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Approach Level distribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = IBQ_vocreact_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_Surgency_Extraversion_5)) +
+  geom_boxplot(aes(fill = ADHD))
+
+ggplot(df, aes(x = ADHD, y = IBQ_Negative_Affectivity_5)) +
+  geom_boxplot(aes(fill = ADHD))
+```
+
+```{r, message=F, warning=F}
+p1 <- ggplot(df, aes(x = ADHD, y = IBQ_Orienting_Regulation_5)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Orienting Regulation",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Orienting Regulation difference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = IBQ_Orienting_Regulation_5)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Orienting Regulation",
+       caption = "Infant Behavior Questionnaire",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Orienting Regulation distribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = AT_48months))+
+  geom_boxplot(aes(fill = ADHD))
+
+p1 <- ggplot(df, aes(x = ADHD, y = AT_48months)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Attention Task accuracy rate at 48-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "48-month Attention Task accuracy rate\ndifference between\ncontrolled and AD/HD infants")
+
+p2 <- ggplot(df, aes(fill = ADHD, x = AT_48months)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Attention Task accuracy rate at 48-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "48-month Attention Task accuracy rate\ndistribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+
+ggsave("attTask.jpg", p, width = 16, height = 9)
+```
+
+```{r, message=F, warning=F}
+
+
+ggplot(df, aes(x = ADHD, y = CBCL_DSM_48months))+
+  geom_boxplot(aes(fill = ADHD))
+
+p1 <- ggplot(df, aes(x = ADHD, y = CBCL_DSM_48months)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Attention Problems Parent Rating at 48-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "48-month Attention Problems Parent Ratings\ndifference between\ncontrolled and AD/HD infants")
+
+p.48 <- ggplot(df, aes(fill = ADHD, x = CBCL_DSM_48months)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Attention Problems Parent Rating at 48-month visit",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "48-month Attention Problems Parent Ratings\ndistribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p1, p2, ncol = 2)
+
+ggsave("parentRat48.jpg", p, width = 16, height = 9)
+```
+
+```{r, message=F, warning=F}
+
+ggplot(df, aes(x = ADHD, y = CBCL_DSM_9yearsold))+
+  geom_boxplot(aes(fill = ADHD))
+
+p1 <- ggplot(df, aes(x = ADHD, y = CBCL_DSM_9yearsold)) +
+  geom_boxplot(aes(fill = ADHD)) +
+  labs(x = "Controlled v.s. AD/HD",
+       y = "Attention Problems Parent Rating at 9 years old",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "=Attention Problems Parent Ratings at 9\ndifference between\ncontrolled and AD/HD infants")
+
+p.9 <- ggplot(df, aes(fill = ADHD, x = CBCL_DSM_9yearsold)) +
+  geom_density(alpha = 0.5) +
+  labs(y = "Density",
+       x = "Attention Problems Parent Rating at 9 years old",
+       fill = "1 = AD/HD\n0 = Controlled",
+       title = "Attention Problems Parent Ratings at 9\ndistribution of\ncontrolled and AD/HD infants")
+
+p <- grid.arrange(p.48, p.9, ncol = 2)
+
+ggsave("parentRat9v48.jpg", p, width = 16, height = 9)
+
+```
+
+```{r, message=F, warning=F}
+ggplot(df, aes(x = ADHD, y = ATYPICAL_Status))+
+  geom_boxplot(aes(fill = ADHD))
+```
